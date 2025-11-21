@@ -18,12 +18,52 @@ Le projet **Projet_spe1** contient une chaîne complète pour prédire le prix d
 en Europe à partir des données Open Power System Data (OPSD). Il inclut l'ingestion, l'exploration,
 le feature engineering, l'entraînement de modèles et les artefacts utilisés pour reproduire les résultats.
 
-### Principaux livrables
+###  Structure du projet
 
-- `main.py` : orchestrateur minimal (création de dossiers, téléchargement, chargement).
-- `notebooks/` : notebooks d'exploration, d'ingénierie des features et de modélisation.
-- `src/` : modules réutilisables (chargement, preprocessing, modèles, évaluation).
-- `models/` : modèles entraînés (XGBoost) pour tests rapides.
+```
+electricite-prediction-europe/
+│
+├── data/                           # Données brutes et traitées
+│   ├── raw/                        # CSV téléchargés (ne pas commit sur Git)
+│   ├── processed/                  # Données après preprocessing
+│   └── external/                   # Données externes (optionnel)
+│
+├── notebooks/                      # Notebooks Jupyter (.ipynb)
+│   ├── 01_exploration_france.ipynb
+│   ├── 02_exploration_danemark.ipynb
+│   ├── 03_feature_engineering.ipynb
+│   ├── 04_modelisation_france.ipynb
+│   ├── 05_modelisation_danemark.ipynb
+│   ├── 06_comparaison_fr_vs_dk.ipynb
+│   └── 07_analyse_shap.ipynb
+│
+├── src/                            # Code Python réutilisable
+│   ├── __init__.py
+│   ├── data_loader.py              # Fonctions chargement données
+│   ├── preprocessing.py            # Feature engineering
+│   ├── models.py                   # Modèles ML
+│   ├── evaluation.py               # Métriques et visualisations
+│   └── utils.py                    # Utilitaires divers
+│
+├── dashboard/                      # Dashboard interactif
+│   ├── app.py                      # Application Streamlit
+│   ├── components/                 # Composants réutilisables
+│   └── assets/                     # CSS, images
+│
+├── models/                         # Modèles entraînés sauvegardés
+│   ├── france_xgboost.pkl
+│   └── danemark_xgboost.pkl
+│
+├── reports/                        # Rapport et visualisations
+│   ├── figures/                    # Graphiques exportés
+│   ├── rapport_projet.md           # Rapport en Markdown
+│   └── presentation.pptx           # Slides soutenance
+│
+├── requirements.txt                # Dépendances Python
+├── README.md                       # Documentation projet
+└── .gitignore                      # Fichiers à ignorer (data/raw/, models/)
+
+```
 
 ### Table des matières
 
