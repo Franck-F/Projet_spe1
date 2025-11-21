@@ -1,7 +1,7 @@
 """
 Script de téléchargement et chargement des données Open Power System Data (OPSD)
 Projet : Prédiction du prix de l'électricité en Europe
-Auteur : Ines Krissaane
+Auteur : Franck F. Charlotte M. Djourah O. Koffi A. Youssef S.
 Date : 21 Novembre 2025
 """
 
