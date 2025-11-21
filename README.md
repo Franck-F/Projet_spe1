@@ -56,7 +56,7 @@ Si `requirements.txt` n'existe pas :
 pip install pandas requests numpy scikit-learn ipykernel
 ```
 
-### Données (note importante)
+### Données
 
 Le fichier OPSD `time_series_60min_singleindex.csv` est volumineux (>100 MB) et **n'est pas**
 commité dans ce dépôt pour éviter les erreurs de push vers GitHub. Options :
@@ -110,16 +110,9 @@ git commit -m "chore: track raw CSV with Git LFS"
 git push
 ```
 
-### Support & contribution
-
-Ouvrez une issue pour signaler un bug ou proposer une amélioration. Les PRs sont les bienvenues.
-
 ### Licence
 
 Ce projet est publié sous licence **MIT**.
 
----
 
-Si vous voulez que j'ajoute la configuration Git LFS, que je génère `requirements.txt` et le pousse,
-ou que je crée un script `scripts\download_data.ps1`, dites-le et je l'implémente.
 
