@@ -1,17 +1,5 @@
 # Projet : Prédiction du prix de l'électricité en Europe
 
-Résumé
-------
-
-le projet **Projet_spe1** est une chaîne de traitement et de modélisation
-conçue pour prédire le prix day-ahead de l'électricité pour plusieurs zones européennes
-à partir des données publiques Open Power System Data (OPSD).
-
-
-Principaux résultats
--------------------
-
-- Pipelines d'ingestion et de prétraitement des séries temporelles horaires.
 ### Résumé
 
 Le projet **Projet_spe1** contient une chaîne complète pour prédire le prix day-ahead de l'électricité
@@ -24,11 +12,11 @@ le feature engineering, l'entraînement de modèles et les artefacts utilisés p
 electricite-prediction-europe/
 │
 ├── data/                           # Données brutes et traitées
-│   ├── raw/                        # CSV téléchargés (ne pas commit sur Git)
+│   ├── raw/                        # CSV téléchargés 
 │   ├── processed/                  # Données après preprocessing
-│   └── external/                   # Données externes (optionnel)
+│   └── external/                   # Données externes 
 │
-├── notebooks/                      # Notebooks Jupyter (.ipynb)
+├── notebooks/                      # Notebooks Jupyter 
 │   ├── 01_exploration_france.ipynb
 │   ├── 02_exploration_danemark.ipynb
 │   ├── 03_feature_engineering.ipynb
