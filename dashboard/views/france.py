@@ -799,8 +799,8 @@ def render_models_tab(df_2015, df_2020):
                     else:
                         sample_2015_encoded = sample_2015.copy()
                     
-                    # Exclure les colonnes non-features
-                    exclude_cols = ['price_day_ahead', 'day_name', 'season_lbl', 'date', 'utc_timestamp', 'season']
+                    # Exclure les colonnes non-features (mais garder season encodée)
+                    exclude_cols = ['price_day_ahead', 'day_name', 'season_lbl', 'date', 'utc_timestamp']
                     feature_cols = [c for c in sample_2015_encoded.columns if c not in exclude_cols]
                     
                     X_sample = sample_2015_encoded[feature_cols].fillna(0)
@@ -827,11 +827,7 @@ def render_models_tab(df_2015, df_2020):
                     # Prédiction LightGBM Base
                     if model_base_2015 is not None and scaler_2015 is not None:
                         try:
-                            # Utiliser exactement les features attendues par le modèle
-                            expected_features = model_base_2015.feature_name_
-                            X_base = X_sample_scaled[:, :len(expected_features)]
-                            
-                            y_pred_base = model_base_2015.predict(X_base)
+                            y_pred_base = model_base_2015.predict(X_sample_scaled)
                             mae_base_viz = np.mean(np.abs(y_true - y_pred_base))
                             
                             fig_pred_2015.add_trace(go.Scatter(
@@ -843,28 +839,52 @@ def render_models_tab(df_2015, df_2020):
                                 opacity=0.9
                             ))
                         except Exception as e:
-                            st.warning(f"Erreur prédiction base: {e}")
+                            st.warning(f"Erreur prédiction base: {str(e)}")
                     
-                    # Prédiction LightGBM Optimisé
+                    # Prédiction LightGBM Optimisé (34 features spécifiques)
                     if model_opt_2015 is not None and scaler_2015 is not None:
                         try:
-                            # Utiliser exactement les features attendues (34 features)
-                            expected_features = model_opt_2015.feature_name_
-                            X_opt = X_sample_scaled[:, :len(expected_features)]
+                            # Obtenir les features exactes attendues par le modèle
+                            expected_features = list(model_opt_2015.feature_name_)
                             
-                            y_pred_opt = model_opt_2015.predict(X_opt)
-                            mae_opt_viz = np.mean(np.abs(y_true - y_pred_opt))
+                            # Identifier les features manquantes
+                            missing_features = [f for f in expected_features if f not in X_sample.columns]
                             
-                            fig_pred_2015.add_trace(go.Scatter(
-                                x=sample_2015.index,
-                                y=y_pred_opt,
-                                mode='lines',
-                                name=f'LightGBM Optimisé (MAE: {mae_opt_viz:.2f})',
-                                line=dict(color='#81C784', width=2),
-                                opacity=0.9
-                            ))
+                            if missing_features:
+                                st.warning(f"Features manquantes: {missing_features}")
+                                # Créer les features manquantes si possible
+                                for feat in missing_features:
+                                    if feat == 'day_of_week':
+                                        X_sample['day_of_week'] = X_sample.index.dayofweek
+                                    elif feat == 'day_of_year':
+                                        X_sample['day_of_year'] = X_sample.index.dayofyear
+                                    elif feat == 'year':
+                                        X_sample['year'] = X_sample.index.year
+                                    elif feat == 'is_weekend':
+                                        X_sample['is_weekend'] = (X_sample.index.dayofweek >= 5).astype(int)
+                            
+                            # Vérifier à nouveau
+                            available_features = [f for f in expected_features if f in X_sample.columns]
+                            
+                            if len(available_features) == len(expected_features):
+                                X_sample_opt = X_sample[expected_features].fillna(0)
+                                X_sample_opt_scaled = scaler_2015.transform(X_sample_opt)
+                                
+                                y_pred_opt = model_opt_2015.predict(X_sample_opt_scaled)
+                                mae_opt_viz = np.mean(np.abs(y_true - y_pred_opt))
+                                
+                                fig_pred_2015.add_trace(go.Scatter(
+                                    x=sample_2015.index,
+                                    y=y_pred_opt,
+                                    mode='lines',
+                                    name=f'LightGBM Optimisé (MAE: {mae_opt_viz:.2f})',
+                                    line=dict(color='#81C784', width=2),
+                                    opacity=0.9
+                                ))
+                            else:
+                                st.warning(f"Features manquantes pour modèle optimisé. Attendu: {len(expected_features)}, Disponibles: {len(available_features)}")
                         except Exception as e:
-                            st.warning(f"Erreur prédiction optimisé: {e}")
+                            st.warning(f"Erreur prédiction optimisé: {str(e)}")
                     
                     fig_pred_2015.update_layout(
                         title="<b>Prédictions Réelles - 2015-2017 (30 derniers jours)</b>",
@@ -879,11 +899,12 @@ def render_models_tab(df_2015, df_2020):
                     
                     # Informations sur les modèles
                     st.caption(f"""
-                    **LightGBM Base 2015-2017**: Modèle baseline entraîné sur {len(expected_features) if model_base_2015 else 'N/A'} features avec paramètres par défaut. 
+                    **LightGBM Base 2015-2017**: Modèle baseline entraîné sur {X_sample.shape[1]} features avec paramètres par défaut. 
                     Période d'entraînement: 80% des données 2015-2017. Normalisation StandardScaler appliquée.
                     
-                    **LightGBM Optimisé 2015-2017**: Modèle optimisé par GridSearchCV sur 34 features. 
+                    **LightGBM Optimisé 2015-2017**: Modèle optimisé par GridSearchCV sur {X_sample.shape[1]} features. 
                     Hyperparamètres: learning_rate, num_leaves, max_depth, n_estimators optimisés pour minimiser la MAE.
+                    Les deux modèles utilisent les mêmes features, seuls les hyperparamètres diffèrent.
                     """)
             else:
                 st.info("Modèles 2015-2017 non disponibles. Vérifiez que les fichiers .pkl sont dans models/France_models/")
