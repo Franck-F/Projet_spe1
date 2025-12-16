@@ -1,0 +1,1 @@
+["utc_timestamp", "biomass", "gas", "coal", "oil", "hydro_pumped", "hydro_river", "hydro_reservoir", "nuclear", "solar", "waste", "wind_onshore", "price_day_ahead", "temperature", "cloud_cover", "wind_speed", "load", "load_forecast", "wind", "hydro", "price_raw", "year", "load_bin", "nuclear_bin", "month", "day_name", "hour", "dayofweek", "is_weekend", "season_lbl", "is_holiday"]

@@ -206,7 +206,7 @@ st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; color: grey; padding: 20px;'>
-        Auteurs : Franck F. Charlotte M. Djourah O. Koffi A. Youssef S.
+        Auteurs : Franck F. --- Charlotte M. --- Djourah O. --- Koffi A. --- Youssef S.
     </div>
     """,
     unsafe_allow_html=True

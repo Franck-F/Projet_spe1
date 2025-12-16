@@ -8,6 +8,106 @@ import numpy as np
 from utils.data_loader import load_france_data
 
 
+import shap
+
+def engineer_features_2020(df_source, target_index=None):
+    """
+    Génère les 65 features pour le modèle 2020-2025 (Optimisé).
+    Si target_index est fourni (DatetimeIndex), renvoie uniquement les lignes correspondantes
+    en prenant soin d'inclure l'historique suffisant pour les calculs (lags/rolling).
+    """
+    # Buffer de 2 semaines pour les rolling windows (168h + marge)
+    buffer_hours = 24 * 10
+    
+    # Découpage intelligent du DataFrame source
+    if target_index is not None and not df_source.empty:
+        start_needed = target_index.min() - pd.Timedelta(hours=buffer_hours)
+        end_needed = target_index.max()
+        # On prend un slice large pour avoir l'historique
+        mask = (df_source.index >= start_needed) & (df_source.index <= end_needed)
+        features_df = df_source.loc[mask].copy()
+    else:
+        features_df = df_source.copy()
+
+    if features_df.empty:
+        return features_df
+
+    # --- Feature Engineering ---
+    
+    # A. Temporel
+    features_df['day_of_week'] = features_df.index.dayofweek
+    features_df['day_of_year'] = features_df.index.dayofyear
+    features_df['quarter'] = features_df.index.quarter
+    
+    # B. Lags
+    for lag in [1, 3, 6, 12, 24, 168]:
+        if 'price_day_ahead' in features_df.columns:
+            features_df[f'price_lag_{lag}h'] = features_df['price_day_ahead'].shift(lag)
+    
+    for lag in [1, 3, 6, 12, 24]:
+        if 'load' in features_df.columns:
+            features_df[f'load_lag_{lag}h'] = features_df['load'].shift(lag)
+    
+    # C. Rolling Stats
+    if 'price_day_ahead' in features_df.columns:
+        for window in [6, 24, 168]:
+            features_df[f'price_rolling_mean_{window}h'] = features_df['price_day_ahead'].rolling(window=window).mean()
+            features_df[f'price_rolling_std_{window}h'] = features_df['price_day_ahead'].rolling(window=window).std()
+            features_df[f'price_rolling_min_{window}h'] = features_df['price_day_ahead'].rolling(window=window).min()
+            features_df[f'price_rolling_max_{window}h'] = features_df['price_day_ahead'].rolling(window=window).max()
+    
+    if 'load' in features_df.columns:
+        for window in [6, 24]:
+            features_df[f'load_rolling_mean_{window}h'] = features_df['load'].rolling(window=window).mean()
+            features_df[f'load_rolling_std_{window}h'] = features_df['load'].rolling(window=window).std()
+        
+    # D. Interactions & Derived
+    if 'load' in features_df.columns and 'hour' in features_df.columns:
+        features_df['load_x_hour'] = features_df['load'] * features_df['hour']
+        
+    if 'temperature' in features_df.columns and 'cloud_cover' in features_df.columns:
+        features_df['temp_x_cloud'] = features_df['temperature'] * features_df['cloud_cover']
+    elif 'temperature' in features_df.columns:
+        features_df['temp_x_cloud'] = 0
+        
+    if 'temperature' in features_df.columns and 'load' in features_df.columns:
+        features_df['temp_x_load'] = features_df['temperature'] * features_df['load']
+        
+    if 'wind' in features_df.columns and 'wind_speed' in features_df.columns:
+        features_df['wind_x_speed'] = features_df['wind'] * features_df['wind_speed']
+    
+    # Totaux et Ratios
+    renewables = ['solar', 'wind', 'hydro', 'biomass', 'waste']
+    avail_renew = [c for c in renewables if c in features_df.columns]
+    features_df['renewable_generation'] = features_df[avail_renew].sum(axis=1)
+    
+    sources = ['nuclear', 'gas', 'coal', 'oil'] + avail_renew
+    avail_sources = [c for c in sources if c in features_df.columns]
+    features_df['total_generation'] = features_df[avail_sources].sum(axis=1)
+    
+    features_df['renewable_ratio'] = features_df['renewable_generation'] / features_df['total_generation']
+    if 'load' in features_df.columns:
+        features_df['residual_load'] = features_df['load'] - features_df['renewable_generation']
+    
+    if 'price_day_ahead' in features_df.columns:
+        features_df['price_delta'] = features_df['price_day_ahead'].diff()
+        features_df['price_delta_pct'] = features_df['price_day_ahead'].pct_change()
+    
+    if 'nuclear' in features_df.columns:
+        try:
+            features_df['nuclear_bin'] = pd.qcut(features_df['nuclear'], q=5, labels=False, duplicates='drop')
+        except:
+            features_df['nuclear_bin'] = 0
+
+    # Filtrer pour ne garder que les lignes demandées (target_index)
+    if target_index is not None:
+        # Intersection des index pour éviter les erreurs si des dates manquent
+        common_idx = features_df.index.intersection(target_index)
+        features_df = features_df.loc[common_idx]
+        
+    return features_df
+
+
 def render_france(df_orig):
     """
     Renders the comprehensive France dashboard with EDA, modeling, and SHAP analysis.
@@ -32,7 +132,7 @@ def render_france(df_orig):
         "⚡ Mix Énergétique",
         "🔗 Corrélations",
         "🤖 Performance Modèles",
-        "🔍 SHAP Analysis"
+        "🔍 Analyse de la Volatilité"
     ])
     
     # ========== TAB 1: Vue d'Ensemble ==========
@@ -57,53 +157,179 @@ def render_france(df_orig):
     
     # ========== TAB 6: SHAP Analysis ==========
     with tab6:
-        render_shap_tab()
+        render_shap_tab(df_2015, df_2020)
+
+
 
 
 def render_overview_tab(df_2015, df_2020):
     """Tab 1: Vue d'Ensemble"""
-    st.subheader("Résumé Comparatif des Périodes")
-    
-    st.markdown("""
-    Ce dashboard présente l'analyse prédictive du prix de l'électricité en France 
-    sur deux périodes distinctes aux caractéristiques très différentes.
-    """)
+    st.subheader("Synthèse Globale")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("### 📌 Période 2015-2017")
+        st.markdown("### 🟢 Période 2015-2017")
         if df_2015 is not None and not df_2015.empty:
             st.metric("Observations", f"{len(df_2015):,}")
-            if 'price_day_ahead' in df_2015.columns:
-                price_mean = df_2015['price_day_ahead'].mean()
-                price_std = df_2015['price_day_ahead'].std()
-                st.metric("Prix Moyen", f"{price_mean:.2f} €/MWh")
-                st.metric("Écart-Type", f"{price_std:.2f} €")
-        st.info("**Période stable** : Marché prévisible, peu de volatilité. Idéal pour l'entraînement de modèles.")
-    
+            st.metric("Prix Moyen", f"{df_2015['price_day_ahead'].mean():.2f} €/MWh")
+            st.metric("Volatilité (Std)", f"{df_2015['price_day_ahead'].std():.2f} €")
+            st.info("Période stable : Marché prévisible, peu de volatilité. Idéal pour l'entraînement de modèles.")
+        else:
+            st.warning("Données 2015-2017 non chargées")
+
     with col2:
-        st.markdown("### 📌 Période 2020-2025")
+        st.markdown("### 🔴 Période 2020-2025")
         if df_2020 is not None and not df_2020.empty:
             st.metric("Observations", f"{len(df_2020):,}")
-            if 'price_day_ahead' in df_2020.columns:
-                price_mean = df_2020['price_day_ahead'].mean()
-                price_std = df_2020['price_day_ahead'].std()
-                st.metric("Prix Moyen", f"{price_mean:.2f} €/MWh")
-                st.metric("Écart-Type", f"{price_std:.2f} €")
-        st.warning("**Période volatile** : Crise COVID-19, crise énergétique 2022, prix extrêmes. Données complexes.")
-    
+            st.metric("Prix Moyen", f"{df_2020['price_day_ahead'].mean():.2f} €/MWh")
+            st.metric("Volatilité (Std)", f"{df_2020['price_day_ahead'].std():.2f} €")
+            st.warning("Période volatile : Crise COVID-19, crise énergétique 2022, prix extrêmes. Données complexes.")
+        else:
+            st.warning("Données 2020-2025 non chargées")
+
     st.markdown("---")
     st.markdown("### 🏆 Performance des Modèles (Résumé)")
     
+    # Données récapitulatives basées sur l'entraînement
     perf_data = {
         "Période": ["2015-2017", "2020-2025"],
-        "LightGBM MAE (Optimisé)": ["0.16 €/MWh", "0.61 €/MWh"],
-        "LightGBM R²": ["1.00", "0.998"],
-        "ARIMAX MAE": ["-", "28.74 €/MWh"],
-        "ARIMAX R²": ["-", "0.453"],
+        "LightGBM Base (MAE)": ["0.45 €/MWh", "0.85 €/MWh"],
+        "LightGBM Optimisé (MAE)": ["0.16 €/MWh", "0.61 €/MWh"],
+        "SARIMAX (MAE)": ["-", "28.74 €/MWh"]
     }
     st.table(pd.DataFrame(perf_data))
+
+
+def render_shap_tab(df_2015=None, df_2020=None):
+    """Tab 6: Analyse de la Volatilité (et SHAP)"""
+    st.subheader("📉 Analyse de la Volatilité et Interprétabilité")
+    
+    st.markdown("""
+    Cette section analyse la structure fondamentale du marché (**Merit Order**) et l'explication des prédictions (**SHAP**).
+    """)
+    
+    # --- 1. Analyse de la Volatilité (Hockey Stick) ---
+    st.markdown("### 🏒 Courbe de Merit Order (Hockey Stick)")
+    st.info("""
+    La "courbe en crosse de hockey" illustre la sensibilité du prix à la demande (ou charge résiduelle).
+    *   **Zone plate** : Offre abondante (nucléaire, renouvelables), prix bas et stables.
+    *   **Zone verticale** : Offre tendue, recours aux centrales à gaz/charbon coûteuses, prix explosifs.
+    """)
+    
+    col1, col2 = st.columns(2)
+    
+    # Graphique 2015-2017
+    with col1:
+        st.markdown("**2015-2017 : Marché saturé (Stable)**")
+        if df_2015 is not None and not df_2015.empty and 'load' in df_2015.columns and 'price_day_ahead' in df_2015.columns:
+            # Downsample pour la performance visual
+            sample_15 = df_2015.sample(n=min(5000, len(df_2015)))
+            fig_vol_15 = px.scatter(sample_15, x='load', y='price_day_ahead', 
+                                   title='Prix vs Charge (2015-2017)',
+                                   labels={'load': 'Consommation (MW)', 'price_day_ahead': 'Prix (€/MWh)'},
+                                   color='price_day_ahead',
+                                   color_continuous_scale='Viridis',
+                                   opacity=0.6)
+            fig_vol_15.update_layout(template='plotly_dark', height=400, coloraxis_showscale=False)
+            st.plotly_chart(fig_vol_15, use_container_width=True)
+            st.caption("Relation quasi-linéaire. Les couleurs claires indiquent les prix bas (majoritaires).")
+        else:
+            st.warning("Données 2015-2017 insuffisantes.")
+
+    # Graphique 2020-2025
+    with col2:
+        st.markdown("**2020-2025 : Marché tendu (Volatile)**")
+        if df_2020 is not None and not df_2020.empty and 'load' in df_2020.columns and 'price_day_ahead' in df_2020.columns:
+            sample_20 = df_2020.sample(n=min(5000, len(df_2020)))
+            fig_vol_20 = px.scatter(sample_20, x='load', y='price_day_ahead', 
+                                   title='Prix vs Charge (2020-2025)',
+                                   labels={'load': 'Consommation (MW)', 'price_day_ahead': 'Prix (€/MWh)'},
+                                   color='price_day_ahead',
+                                   color_continuous_scale='Inferno',
+                                   opacity=0.6)
+            fig_vol_20.update_layout(template='plotly_dark', height=400, coloraxis_showscale=False)
+            st.plotly_chart(fig_vol_20, use_container_width=True)
+            st.caption("Forte convexité. Les couleurs vives (Jaune/Rouge) mettent en évidence les pics de prix extrêmes.")
+        else:
+            st.warning("Données 2020-2025 insuffisantes.")
+
+    st.markdown("---")
+
+    # --- 2. Analyse SHAP ---
+    st.subheader("🔍 Interprétabilité du Modèle (SHAP)")
+    st.markdown("Analyse des drivers de prix sur la période récente (2020-2025).")
+    
+    # ... Rest of existing SHAP logic ...
+    # 1. Charger le modèle optimisé 2020-2025
+    from utils.model_loader import load_model
+    model_opt = load_model('lightgbm_france_2020_2025_optimized')
+    
+    if model_opt is None or df_2020 is None:
+        st.warning("Modèle Optimisé 2020-2025 ou données non disponibles pour l'analyse SHAP.")
+        return
+
+    # 2. Préparer un échantillon de données (les 500 dernières observations pour rapidité)
+    with st.spinner("Calcul des valeurs SHAP en cours (sur échantillon)..."):
+        try:
+            sample_size = 500
+            if len(df_2020) > sample_size + 500: # Marge pour le lag
+                target_idx = df_2020.index[-sample_size:]
+                X_eng = engineer_features_2020(df_2020, target_idx)
+            else:
+                X_eng = engineer_features_2020(df_2020)
+            
+            # Sélectionner les features du modèle
+            expected_features = model_opt.feature_name_
+            
+            # Vérifier si on a toutes les features
+            available_features = [f for f in expected_features if f in X_eng.columns]
+            
+            if len(available_features) < len(expected_features):
+                st.warning(f"Attention: {len(expected_features) - len(available_features)} features manquantes pour SHAP.")
+            
+            X_shap = X_eng[available_features].fillna(0)
+            
+            # 3. Calcul SHAP
+            explainer = shap.TreeExplainer(model_opt)
+            shap_values = explainer.shap_values(X_shap)
+            
+            # 4. Visualisation Global Importance (Bar Chart)
+            # Moyenne absolue des valeurs SHAP par feature
+            shap_importance = np.abs(shap_values).mean(axis=0)
+            
+            df_shap_viz = pd.DataFrame({
+                'Feature': X_shap.columns,
+                'Importance': shap_importance
+            })
+            
+            # Top 20 features
+            df_shap_viz = df_shap_viz.sort_values(by='Importance', ascending=True).tail(20)
+            
+            fig_shap = px.bar(df_shap_viz, 
+                         x='Importance', 
+                         y='Feature', 
+                         orientation='h',
+                         title='<b>Importance des Features (SHAP Global - Top 20)</b>',
+                         text_auto='.2f',  
+                         color='Importance',
+                         color_continuous_scale='Viridis')
+
+            fig_shap.update_layout(
+                height=800, 
+                xaxis_title="Impact Moyen absolu sur le prix (€/MWh)",
+                yaxis_title="",
+                font=dict(size=12),
+                template='plotly_dark'
+            )
+            st.plotly_chart(fig_shap, use_container_width=True)
+            
+            # 5. Interprétation textuelle simple
+            top_3 = df_shap_viz.sort_values(by='Importance', ascending=False).head(3)['Feature'].tolist()
+            st.info(f"💡 Les 3 facteurs les plus influents sur cette période sont : **{', '.join(top_3)}**.")
+            
+        except Exception as e:
+            st.error(f"Erreur lors du calcul SHAP: {str(e)}")
 
 
 def render_eda_tab(df_2020):
@@ -129,7 +355,7 @@ def render_eda_tab(df_2020):
         fig_hist = px.histogram(df_2020, x=price_col, nbins=100,
                                title="Distribution du Prix (2020-2025)")
         fig_hist.update_traces(marker_color='#EF553B')
-        fig_hist.update_layout(xaxis_title='Prix (€/MWh)', yaxis_title='Fréquence')
+        fig_hist.update_layout(xaxis_title='Prix (€/MWh)', yaxis_title='Fréquence', template='plotly_dark')
         st.plotly_chart(fig_hist, use_container_width=True)
         st.caption("📝 Distribution asymétrique avec queue épaisse à droite (pics 2022).")
     
@@ -140,6 +366,7 @@ def render_eda_tab(df_2020):
         fig_box = px.box(df_year, x='year', y=price_col,
                         title="Distribution par Année")
         fig_box.update_traces(marker_color='#EF553B')
+        fig_box.update_layout(template='plotly_dark')
         st.plotly_chart(fig_box, use_container_width=True)
         st.caption("📝 2022 = année exceptionnelle avec des prix > 500 €/MWh.")
     
@@ -239,7 +466,8 @@ def render_eda_tab(df_2020):
                 yaxis_title='Prix (€/MWh)',
                 height=500,
                 hovermode='closest',
-                showlegend=True
+                showlegend=True,
+                template='plotly_dark'
             )
             
             st.plotly_chart(fig_outliers, use_container_width=True)
@@ -327,7 +555,8 @@ def render_eda_tab(df_2020):
             title="<b>Évolution du Prix Moyen Annuel (% Variation)</b>",
             xaxis_title='Année',
             yaxis_title='Prix Moyen (€/MWh)',
-            height=500
+            height=500,
+            template='plotly_dark'
         )
         st.plotly_chart(fig_annual, use_container_width=True)
     
@@ -365,7 +594,8 @@ def render_eda_tab(df_2020):
             fig_weekly.update_layout(
                 title="<b>Prix Moyen par Jour de la Semaine</b>",
                 xaxis_title='Jour',
-                yaxis_title='Prix Moyen (€/MWh)'
+                yaxis_title='Prix Moyen (€/MWh)',
+                template='plotly_dark'
             )
             st.plotly_chart(fig_weekly, use_container_width=True)
     
@@ -378,7 +608,7 @@ def render_eda_tab(df_2020):
         fig_hourly = go.Figure()
         fig_hourly.add_trace(go.Scatter(x=hourly_week.index, y=hourly_week, name='Semaine', line=dict(width=3)))
         fig_hourly.add_trace(go.Scatter(x=hourly_weekend.index, y=hourly_weekend, name='Weekend', line=dict(width=3)))
-        fig_hourly.update_layout(title="<b>Profil Horaire</b>", xaxis_title='Heure', yaxis_title='Prix Moyen (€/MWh)')
+        fig_hourly.update_layout(title="<b>Profil Horaire</b>", xaxis_title='Heure', yaxis_title='Prix Moyen (€/MWh)', template='plotly_dark')
         st.plotly_chart(fig_hourly, use_container_width=True)
     
     # Section 4: Prix vs Load
@@ -399,7 +629,8 @@ def render_eda_tab(df_2020):
         fig_load.update_layout(
             title="Tendance : Prix Moyen par Niveau de Consommation",
             xaxis_title='Consommation (MW)',
-            yaxis_title='Prix Moyen (€/MWh)'
+            yaxis_title='Prix Moyen (€/MWh)',
+            template='plotly_dark'
         )
         st.plotly_chart(fig_load, use_container_width=True)
 
@@ -567,7 +798,7 @@ def render_correlations_tab(df_2020):
         color_continuous_scale='RdBu_r',
         zmin=-1, zmax=1
     )
-    fig_corr.update_layout(height=1000, width=1200)
+    fig_corr.update_layout(height=1000, width=1200, template='plotly_dark')
     st.plotly_chart(fig_corr, use_container_width=True)
     
     # Section 2: Top Corrélations avec le Prix
@@ -607,7 +838,7 @@ def render_correlations_tab(df_2020):
             color_continuous_scale='RdBu_r',
             zmin=-1, zmax=1
         )
-        fig_focus.update_layout(height=600, width=800)
+        fig_focus.update_layout(height=600, width=800, template='plotly_dark')
         st.plotly_chart(fig_focus, use_container_width=True)
 
 
@@ -677,34 +908,89 @@ def render_models_tab(df_2015, df_2020):
     
     with col2:
         st.markdown("### 📊 Résultats 2020-2025")
-        st.caption("*Modèles sauvegardés et chargés depuis models/*")
+        st.caption("*Performance calculée en TEMP RÉEL sur les 60 derniers jours*")
         
-        # Récupérer les métriques réelles
-        base_2020 = models_info['2020_2025']['base']
-        opt_2020 = models_info['2020_2025']['optimized']
-        sarimax_2020 = models_info['2020_2025']['sarimax']
+        # Initialisation des variables pour la visualisation plus bas
+        mae_base, rmse_base, r2_base = "N/A", "N/A", "N/A"
+        mae_opt, rmse_opt, r2_opt = "N/A", "N/A", "N/A"
+        mae_sar, rmse_sar, r2_sar = "N/A", "N/A", "N/A"
         
-        # Construire le tableau avec les vraies métriques
-        if base_2020:
-            mae_base = format_metric(base_2020.get('MAE'))
-            rmse_base = format_metric(base_2020.get('RMSE'))
-            r2_base = format_metric(base_2020.get('R2'), 3)
-        else:
-            mae_base, rmse_base, r2_base = "N/A", "N/A", "N/A"
+        y_pred_base_live = None
+        y_pred_opt_live = None
+        sample_2020_live = None
+        y_true_live = None
+
+        # Charger les modèles
+        from utils.model_loader import load_model
+        model_base_2020 = load_model('lightgbm_france_2020_2025_base')
+        model_opt_2020 = load_model('lightgbm_france_2020_2025_optimized')
+        sarimax_info = models_info['2020_2025']['sarimax'] # SARIMAX reste statique (trop lent/complexe en live)
         
-        if opt_2020:
-            mae_opt = format_metric(opt_2020.get('MAE'))
-            rmse_opt = format_metric(opt_2020.get('RMSE'))
-            r2_opt = format_metric(opt_2020.get('R2'), 3)
-        else:
-            mae_opt, rmse_opt, r2_opt = "N/A", "N/A", "N/A"
-        
-        if sarimax_2020:
-            mae_sar = format_metric(sarimax_2020.get('MAE'))
-            rmse_sar = format_metric(sarimax_2020.get('RMSE'))
-            r2_sar = format_metric(sarimax_2020.get('R2'), 3)
-        else:
-            mae_sar, rmse_sar, r2_sar = "N/A", "N/A", "N/A"
+        if df_2020 is not None and not df_2020.empty:
+            # Préparer sample (60 jours)
+            sample_2020_live = df_2020.tail(60 * 24).copy()
+            if 'price_day_ahead' in sample_2020_live.columns:
+                y_true_live = sample_2020_live['price_day_ahead']
+                
+                # --- CALCUL LIVE BASE (Features complètes) ---
+                if model_base_2020 is not None:
+                    try:
+                        X_eng = engineer_features_2020(df_2020, sample_2020_live.index)
+                        common = sample_2020_live.index.intersection(X_eng.index)
+                        X_final = X_eng.loc[common]
+                        y_true_aligned = y_true_live.loc[common]
+                        
+                        if hasattr(model_base_2020, 'feature_name_'):
+                            feats = model_base_2020.feature_name_
+                            if all(f in X_final.columns for f in feats):
+                                X_in = X_final[feats].fillna(0)
+                                y_pred_base_live = model_base_2020.predict(X_in)
+                                
+                                # Metrics
+                                mae_val = np.mean(np.abs(y_true_aligned - y_pred_base_live))
+                                rmse_val = np.sqrt(np.mean((y_true_aligned - y_pred_base_live)**2))
+                                r2_val = 1 - (np.sum((y_true_aligned - y_pred_base_live)**2) / np.sum((y_true_aligned - y_true_aligned.mean())**2))
+                                
+                                mae_base = f"{mae_val:.2f}"
+                                rmse_base = f"{rmse_val:.2f}"
+                                r2_base = f"{r2_val:.3f}"
+                                
+                                # Sauvegarder pour viz (alignement)
+                                sample_2020_live = sample_2020_live.loc[common]
+                                y_true_live = y_true_aligned
+                    except Exception as e:
+                        st.warning(f"Err Base: {e}")
+
+                # --- CALCUL LIVE OPTIMISÉ ---
+                if model_opt_2020 is not None:
+                    try:
+                        X_eng = engineer_features_2020(df_2020, sample_2020_live.index)
+                        common = sample_2020_live.index.intersection(X_eng.index)
+                        X_final = X_eng.loc[common]
+                        y_true_aligned = y_true_live.loc[common]
+                        
+                        if hasattr(model_opt_2020, 'feature_name_'):
+                            feats = model_opt_2020.feature_name_
+                            if all(f in X_final.columns for f in feats):
+                                X_in = X_final[feats].fillna(0)
+                                y_pred_opt_live = model_opt_2020.predict(X_in)
+                                
+                                # Metrics
+                                mae_val = np.mean(np.abs(y_true_aligned - y_pred_opt_live))
+                                rmse_val = np.sqrt(np.mean((y_true_aligned - y_pred_opt_live)**2))
+                                r2_val = 1 - (np.sum((y_true_aligned - y_pred_opt_live)**2) / np.sum((y_true_aligned - y_true_aligned.mean())**2))
+                                
+                                mae_opt = f"{mae_val:.2f}"
+                                rmse_opt = f"{rmse_val:.2f}"
+                                r2_opt = f"{r2_val:.3f}"
+                    except Exception as e:
+                         st.warning(f"Err Opt: {e}")
+
+        # SARIMAX (Metadata)
+        if sarimax_info:
+            mae_sar = format_metric(sarimax_info.get('MAE'))
+            rmse_sar = format_metric(sarimax_info.get('RMSE'))
+            r2_sar = format_metric(sarimax_info.get('R2'), 3)
         
         perf_2020 = {
             "Métrique": ["MAE (€/MWh)", "RMSE (€/MWh)", "R²"],
@@ -715,7 +1001,7 @@ def render_models_tab(df_2015, df_2020):
         st.table(pd.DataFrame(perf_2020))
         
         if mae_opt != "N/A" and r2_opt != "N/A":
-            st.success(f"✅ LightGBM Optimisé : MAE {mae_opt}, R² {r2_opt} — Excellente performance !")
+            st.success(f"✅ LightGBM Optimisé (Live): MAE {mae_opt}, R² {r2_opt}")
     
     st.markdown("---")
     st.info("""
@@ -876,23 +1162,25 @@ def render_models_tab(df_2015, df_2020):
                             st.warning(f"Erreur prédiction optimisé: {str(e)}")
                     
                     fig_pred_2015.update_layout(
-                        title="<b>Prédictions Réelles - 2015-2017 (30 derniers jours)</b>",
+                        title="<b>Prédictions VS Réelles - 2015-2017 (30 derniers jours)</b>",
                         xaxis_title='Date',
                         yaxis_title='Prix (€/MWh)',
                         height=400,
                         hovermode='x unified',
-                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                        template='plotly_dark'
                     )
                     
                     st.plotly_chart(fig_pred_2015, use_container_width=True)
                     
                     # Informations sur les modèles
                     st.caption(f"""
-                    **LightGBM Base 2015-2017**: Modèle baseline entraîné sur {X_sample_base.shape[1]} features (sans season encodée). 
-                    Période d'entraînement: 80% des données 2015-2017. Normalisation StandardScaler appliquée.
+                    **LightGBM Base 2015-2017**: Modèle de référence incluant des indicateurs de tendance court-terme (moyennes mobiles 24h). 
+                    Il sert de benchmark pour évaluer l'apport des fondamentaux de marché face à la simple inertie des prix.
                     
-                    **LightGBM Optimisé 2015-2017**: Modèle optimisé par GridSearchCV sur {X_sample_opt.shape[1]} features (avec season encodée, sans week/rolling_24h). 
-                    Hyperparamètres: learning_rate, num_leaves, max_depth, n_estimators optimisés pour minimiser la MAE.
+                    **LightGBM Optimisé 2015-2017**: Modèle avancé focalisé sur les fondamentaux. 
+                    Il exclut les tendances de prix inertielles (rolling 24h) pour mieux capturer la causalité physique (Météo, Charge, Production). 
+                    Sa configuration a été ajustée par GridSearch pour maximiser la généralisation sur les pics de prix.
                     """)
             else:
                 st.info("Modèles 2015-2017 non disponibles. Vérifiez que les fichiers .pkl sont dans models/France_models/")
@@ -928,84 +1216,150 @@ def render_models_tab(df_2015, df_2020):
                     ))
                     
                     # Prédiction LightGBM Base (11 features spécifiques)
+                    # Prédiction LightGBM Base (Features complètes avec lags)
                     if model_base_2020 is not None:
                         try:
-                            # Features exactes du modèle base
-                            features_base = ['gas', 'coal', 'nuclear', 'solar', 'wind', 'biomass', 'waste', 'load', 'temperature', 'cloud_cover', 'wind_speed']
-                            features_base = [f for f in features_base if f in sample_2020.columns]
+                            # 1. Utiliser le même feature engineering que pour le modèle optimisé
+                            X_engineered_base = engineer_features_2020(df_2020, sample_2020.index)
                             
-                            if len(features_base) == 11:
-                                X_sample_base = sample_2020[features_base].fillna(0)
-                                y_pred_base = model_base_2020.predict(X_sample_base)
-                                mae_base_viz = np.mean(np.abs(y_true - y_pred_base))
+                            # Alignement de sécurité
+                            common_index_base = sample_2020.index.intersection(X_engineered_base.index)
+                            X_final_base = X_engineered_base.loc[common_index_base]
+                            
+                            # 2. Sélectionner les features du modèle de base
+                            if hasattr(model_base_2020, 'feature_name_'):
+                                expected_features_base = model_base_2020.feature_name_
+                                missing_base = [f for f in expected_features_base if f not in X_final_base.columns]
                                 
-                                fig_pred_2020.add_trace(go.Scatter(
-                                    x=sample_2020.index,
-                                    y=y_pred_base,
-                                    mode='lines',
-                                    name=f'LightGBM Base (MAE: {mae_base_viz:.2f})',
-                                    line=dict(color='#FFB74D', width=1.5, dash='dash'),
-                                    opacity=0.9
-                                ))
+                                if len(missing_base) == 0:
+                                    X_final_base = X_final_base[expected_features_base].fillna(0)
+                                    y_pred_base = model_base_2020.predict(X_final_base)
+                                    mae_base_viz = np.mean(np.abs(y_true.loc[common_index_base] - y_pred_base))
+                                    
+                                    fig_pred_2020.add_trace(go.Scatter(
+                                        x=common_index_base,
+                                        y=y_pred_base,
+                                        mode='lines',
+                                        name=f'LightGBM Base (MAE: {mae_base_viz:.2f})',
+                                        line=dict(color='#FFB74D', width=1.5, dash='dash'),
+                                        opacity=0.9
+                                    ))
+                                else:
+                                    st.warning(f"Features manquantes pour modèle base. Attendu: {len(expected_features_base)}, Manquant: {len(missing_base)}")
                             else:
-                                st.warning(f"Features manquantes pour modèle base. Attendu: 11, Trouvé: {len(features_base)}")
+                                st.warning("Le modèle de base n'a pas l'attribut feature_name_.")
+
                         except Exception as e:
                             st.warning(f"Erreur prédiction base 2020: {e}")
                     
                     # Prédiction LightGBM Optimisé (65 features engineered)
                     if model_opt_2020 is not None:
                         try:
-                            # Utiliser les features exactes attendues par le modèle
+                            # 1. Utiliser le helper pour la feature engineering
+                            # On passe l'index de sample_2020 pour récupérer exactement les mêmes lignes
+                            X_engineered = engineer_features_2020(df_2020, sample_2020.index)
+                            
+                            # Alignement de sécurité: intersection des index
+                            common_index = sample_2020.index.intersection(X_engineered.index)
+                            sample_2020 = sample_2020.loc[common_index]
+                            y_true = sample_2020['price_day_ahead'] # Mise à jour de y_true
+                            X_final_opt = X_engineered.loc[common_index]
+                            
+                            # 4. Sélectionner les features du modèle
                             expected_features = model_opt_2020.feature_name_
+                            missing = [f for f in expected_features if f not in X_final_opt.columns]
                             
-                            # Préparer X avec toutes les colonnes disponibles
-                            drop_cols_technical = ['day_name', 'season_lbl', 'season', 'price_raw', 'load_bin', 'utc_timestamp', 'date']
-                            drop_cols_technical = [c for c in drop_cols_technical if c in sample_2020.columns]
-                            drop_cols_leakage = [c for c in sample_2020.columns if 'price_day_ahead' in c and 'lag' not in c and 'rolling' not in c]
-                            drop_cols = list(set(drop_cols_technical + drop_cols_leakage))
-                            
-                            X_all = sample_2020.drop(columns=drop_cols, errors='ignore').fillna(0)
-                            
-                            # Sélectionner uniquement les features attendues dans le bon ordre
-                            available_features = [f for f in expected_features if f in X_all.columns]
-                            X_sample_opt = X_all[available_features]
-                            
-                            if len(available_features) == len(expected_features):
-                                y_pred_opt = model_opt_2020.predict(X_sample_opt)
+                            if len(missing) == 0:
+                                X_final_opt = X_final_opt[expected_features].fillna(0) # Ordre et fillna
+                                y_pred_opt = model_opt_2020.predict(X_final_opt)
                                 mae_opt_viz = np.mean(np.abs(y_true - y_pred_opt))
-                                
-                                fig_pred_2020.add_trace(go.Scatter(
-                                    x=sample_2020.index,
-                                    y=y_pred_opt,
-                                    mode='lines',
-                                    name=f'LightGBM Optimisé (MAE: {mae_opt_viz:.2f})',
-                                    line=dict(color='#81C784', width=2),
-                                    opacity=0.9
-                                ))
                             else:
-                                st.warning(f"Features manquantes pour modèle optimisé. Attendu: {len(expected_features)}, Trouvé: {len(available_features)}")
+                                st.warning(f"Features manquantes pour modèle optimisé. Attendu: {len(expected_features)}, Trouvé: {len(expected_features) - len(missing)}")
+                                st.code(f"Manquantes: {missing}")
+                                y_pred_opt = None
+                                
                         except Exception as e:
                             st.warning(f"Erreur prédiction optimisé 2020: {e}")
+                            y_pred_opt = None
                     
-                    fig_pred_2020.update_layout(
-                        title="<b>Prédictions Réelles - 2020-2025 (60 derniers jours)</b>",
-                        xaxis_title='Date',
-                        yaxis_title='Prix (€/MWh)',
-                        height=400,
-                        hovermode='x unified',
+                # --- VIZ 1: Comparaison (Style script original) ---
+                fig_compare = go.Figure()
+                
+                # Réel
+                if y_true_live is not None and not y_true_live.empty:
+                    fig_compare.add_trace(go.Scatter(
+                        x=y_true_live.index, y=y_true_live, 
+                        name='Réel', 
+                        line=dict(color='#2E7D32', width=3)
+                    ))
+                    
+                    # Base (Live Calculation Reuse)
+                    if y_pred_base_live is not None and len(y_pred_base_live) == len(y_true_live):
+                        fig_compare.add_trace(go.Scatter(
+                            x=y_true_live.index, y=y_pred_base_live, 
+                            name=f'Baseline (MAE={mae_base})', 
+                            line=dict(color='#1976D2', width=1.5, dash='dot'), 
+                            opacity=0.7
+                        ))
+                
+                    # Optimisé (Live Calculation Reuse)
+                    if y_pred_opt_live is not None and len(y_pred_opt_live) == len(y_true_live):
+                        fig_compare.add_trace(go.Scatter(
+                            x=y_true_live.index, y=y_pred_opt_live, 
+                            name=f'Optimisé (MAE={mae_opt})', 
+                            line=dict(color='#D32F2F', width=2)
+                        ))
+
+                    layout_config = dict(
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        xaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.2)', linecolor='rgba(128,128,128,0.5)'),
+                        yaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.2)', linecolor='rgba(128,128,128,0.5)'),
                         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
                     )
+
+                    fig_compare.update_layout(
+                        title=dict(text='<b>Comparaison LightGBM (2020-2025)</b>', font=dict(size=20)),
+                        xaxis_title='Date', 
+                        yaxis_title='Prix (€/MWh)', 
+                        height=500, 
+                        template='plotly_dark',
+                        **layout_config
+                    )
+                    st.plotly_chart(fig_compare, use_container_width=True)
                     
-                    st.plotly_chart(fig_pred_2020, use_container_width=True)
+                    # --- VIZ 2: Résidus ---
+                    from plotly.subplots import make_subplots
+                    fig_res = make_subplots(rows=1, cols=2, subplot_titles=('Résidus Base', 'Résidus Optimisé'))
+                    
+                    has_res = False
+                    if y_pred_base_live is not None and len(y_pred_base_live) == len(y_true_live):
+                        res_base = y_true_live - y_pred_base_live
+                        fig_res.add_trace(go.Scatter(x=y_true_live.index, y=res_base, mode='markers',
+                                                     name='Résidus Base', marker=dict(color='#1976D2', opacity=0.5, size=3)), row=1, col=1)
+                        has_res = True
+                    
+                    if y_pred_opt_live is not None and len(y_pred_opt_live) == len(y_true_live):
+                        res_opt = y_true_live - y_pred_opt_live
+                        fig_res.add_trace(go.Scatter(x=y_true_live.index, y=res_opt, mode='markers',
+                                                     name='Résidus Opt', marker=dict(color='#D32F2F', opacity=0.5, size=3)), row=1, col=2)
+                        has_res = True
+                    
+                    if has_res:
+                        fig_res.update_layout(height=400, title_text="Analyse des Résidus (Live)", showlegend=False, template='plotly_dark')
+                        st.plotly_chart(fig_res, use_container_width=True)
+
+                else:
+                    st.warning("Données live (y_true) non disponibles pour la visualisation.")
+
                     
                     # Informations sur les modèles
                     st.caption("""
-                    **LightGBM Base 2020-2025**: Modèle baseline entraîné sur 11 features brutes (production énergétique, consommation, météo). 
-                    Paramètres par défaut, split temporel 80/20. Adapté pour capturer les relations de base entre production et prix.
+                    **LightGBM Base 2020-2025**: Modèle baseline utilisant les **mêmes features** que le script d'entraînement (incluant historiques de prix). 
+                    Il sert de référence (MAE faible attendue ~1-2 €/MWh en test) pour valider que le pipeline de données est cohérent.
                     
-                    **LightGBM Optimisé 2020-2025**: Modèle avancé avec 65 features engineered incluant lags temporels, rolling windows, 
-                    features dérivées et interactions. Optimisé par GridSearchCV pour gérer la volatilité de la crise énergétique 2022.
-                    Hyperparamètres: learning_rate=0.05, num_leaves=100, max_depth=10, n_estimators=500.
+                    **LightGBM Optimisé 2020-2025**: Modèle identique côté features mais avec des **hyperparamètres affinés** via GridSearchCV (learning_rate, depth, leaves)
+                    pour maximiser la robustesse face aux pics de volatilité.
                     """)
             else:
                 st.info("Modèles 2020-2025 non disponibles. Vérifiez que les fichiers .pkl sont dans models/France_models/")
@@ -1024,57 +1378,4 @@ def render_models_tab(df_2015, df_2020):
 
 
 
-def render_shap_tab():
-    """Tab 6: SHAP Analysis"""
-    st.subheader("🔍 Interprétabilité (SHAP)")
-    
-    st.markdown("""
-    L'analyse SHAP (SHapley Additive exPlanations) permet de comprendre **pourquoi** 
-    le modèle fait une prédiction donnée en attribuant une importance à chaque feature.
-    """)
-    
-    st.markdown("### 🔑 Top Features (2015-2017)")
-    features_2015 = {
-        "Feature": ["price_lag_1h", "hour", "load_actual", "solar_generation", "price_lag_24h"],
-        "Impact": ["+++", "++", "++", "+", "+"],
-        "Explication": [
-            "Le prix de l'heure précédente est le meilleur prédicteur.",
-            "L'heure de la journée influence la demande.",
-            "La charge réelle reflète la demande instantanée.",
-            "Plus de solaire = prix plus bas (effet merit-order).",
-            "Le prix d'il y a 24h capture les cycles journaliers."
-        ]
-    }
-    st.table(pd.DataFrame(features_2015))
-    
-    st.markdown("### 🔑 Top Features (2020-2025)")
-    features_2020 = {
-        "Feature": ["gas", "load", "nuclear", "wind", "solar"],
-        "Impact": ["+++", "++", "++", "+", "+"],
-        "Explication": [
-            "Le prix du gaz drive les prix électriques (centrales à gaz marginales).",
-            "La demande reste un facteur clé.",
-            "Le nucléaire, production de base, influence la stabilité.",
-            "L'éolien contribue à la baisse des prix.",
-            "Le solaire aussi, mais avec une saisonnalité forte."
-        ]
-    }
-    st.table(pd.DataFrame(features_2020))
-    
-    st.info("""
-    💡 **Insight** : En 2015-2017, les lags de prix dominent (marché prévisible). 
-    En 2020-2025, les fondamentaux (gaz, nucléaire) prennent le dessus car le marché 
-    est plus réactif aux conditions de production et aux prix des commodités.
-    """)
-    
-    st.markdown("---")
-    st.markdown("### 📈 Visualisation SHAP (Exemple)")
-    
-    st.info("""
-    **Note** : Pour afficher les graphiques SHAP interactifs en temps réel, 
-    il faudrait charger le modèle LightGBM entraîné et calculer les valeurs SHAP 
-    sur un échantillon de données. Cela nécessite le fichier du modèle sauvegardé.
-    
-    Les tableaux ci-dessus résument les résultats de l'analyse SHAP effectuée 
-    dans le notebook `France_2020_2025_Modeling.py`.
-    """)
+
