@@ -1,6 +1,5 @@
 # Projet : Prédiction du prix de l'électricité en Europe
-
-### Résumé
+![alt text](image.png)
 
 Ce projet vise à prédire le prix day-ahead de l'électricité en Europe (focus France et Danemark) en utilisant des techniques de Machine Learning avancées et des séries temporelles. Il analyse les données de 2020 à 2025 (incluant la crise énergétique et la stabilisation).
 
