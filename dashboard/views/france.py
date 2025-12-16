@@ -772,7 +772,7 @@ def render_models_tab(df_2015, df_2020):
     
     # Graphiques pour 2015-2017
     if df_2015 is not None and not df_2015.empty:
-        st.markdown("#### 🔹 Prédictions 2015-2017")
+        st.markdown("#### Prédictions 2015-2017")
         
         try:
             # Charger les modèles
@@ -785,13 +785,13 @@ def render_models_tab(df_2015, df_2020):
                 sample_2015 = df_2015.tail(30 * 24).copy()
                 
                 if 'price_day_ahead' in sample_2015.columns:
-                    # Créer les features temporelles comme dans le script d'entraînement
+                    # Créer les features temporelles
                     sample_2015['week'] = sample_2015.index.isocalendar().week
                     sample_2015['month'] = sample_2015.index.month
                     sample_2015['dayofweek'] = sample_2015.index.dayofweek
                     sample_2015['hour'] = sample_2015.index.hour
                     
-                    # Encoder la saison si elle existe (mais ne pas l'inclure dans les features)
+                    # Encoder la saison
                     if 'season' in sample_2015.columns:
                         season_encoding = {'Winter': 0, 'Spring': 1, 'Summer': 2, 'Fall': 3}
                         sample_2015_encoded = sample_2015.copy()
@@ -799,14 +799,14 @@ def render_models_tab(df_2015, df_2020):
                     else:
                         sample_2015_encoded = sample_2015.copy()
                     
-                    # Exclure les colonnes non-numériques et la target
+                    # Exclure les colonnes non-features
                     exclude_cols = ['price_day_ahead', 'day_name', 'season_lbl', 'date', 'utc_timestamp', 'season']
                     feature_cols = [c for c in sample_2015_encoded.columns if c not in exclude_cols]
                     
                     X_sample = sample_2015_encoded[feature_cols].fillna(0)
                     y_true = sample_2015['price_day_ahead']
                     
-                    # Normaliser avec scaler (OBLIGATOIRE - le modèle attend des données normalisées)
+                    # Normaliser avec scaler
                     if scaler_2015 is not None:
                         X_sample_scaled = scaler_2015.transform(X_sample)
                     else:
@@ -815,19 +815,23 @@ def render_models_tab(df_2015, df_2020):
                     
                     fig_pred_2015 = go.Figure()
                     
-                    # Prix réel (couleur visible sur fond sombre)
+                    # Prix réel
                     fig_pred_2015.add_trace(go.Scatter(
                         x=sample_2015.index,
                         y=y_true,
                         mode='lines',
                         name='Prix Réel',
-                        line=dict(color='#FFFFFF', width=2)  # Blanc
+                        line=dict(color='#FFFFFF', width=2)
                     ))
                     
                     # Prédiction LightGBM Base
                     if model_base_2015 is not None and scaler_2015 is not None:
                         try:
-                            y_pred_base = model_base_2015.predict(X_sample_scaled)
+                            # Utiliser exactement les features attendues par le modèle
+                            expected_features = model_base_2015.feature_name_
+                            X_base = X_sample_scaled[:, :len(expected_features)]
+                            
+                            y_pred_base = model_base_2015.predict(X_base)
                             mae_base_viz = np.mean(np.abs(y_true - y_pred_base))
                             
                             fig_pred_2015.add_trace(go.Scatter(
@@ -835,7 +839,7 @@ def render_models_tab(df_2015, df_2020):
                                 y=y_pred_base,
                                 mode='lines',
                                 name=f'LightGBM Base (MAE: {mae_base_viz:.2f})',
-                                line=dict(color='#FFB74D', width=1.5, dash='dash'),  # Orange clair
+                                line=dict(color='#FFB74D', width=1.5, dash='dash'),
                                 opacity=0.9
                             ))
                         except Exception as e:
@@ -844,7 +848,11 @@ def render_models_tab(df_2015, df_2020):
                     # Prédiction LightGBM Optimisé
                     if model_opt_2015 is not None and scaler_2015 is not None:
                         try:
-                            y_pred_opt = model_opt_2015.predict(X_sample_scaled)
+                            # Utiliser exactement les features attendues (34 features)
+                            expected_features = model_opt_2015.feature_name_
+                            X_opt = X_sample_scaled[:, :len(expected_features)]
+                            
+                            y_pred_opt = model_opt_2015.predict(X_opt)
                             mae_opt_viz = np.mean(np.abs(y_true - y_pred_opt))
                             
                             fig_pred_2015.add_trace(go.Scatter(
@@ -852,7 +860,7 @@ def render_models_tab(df_2015, df_2020):
                                 y=y_pred_opt,
                                 mode='lines',
                                 name=f'LightGBM Optimisé (MAE: {mae_opt_viz:.2f})',
-                                line=dict(color='#81C784', width=2),  # Vert clair
+                                line=dict(color='#81C784', width=2),
                                 opacity=0.9
                             ))
                         except Exception as e:
@@ -868,7 +876,15 @@ def render_models_tab(df_2015, df_2020):
                     )
                     
                     st.plotly_chart(fig_pred_2015, use_container_width=True)
-                    st.caption("📝 Prédictions réelles générées par les modèles sauvegardés.")
+                    
+                    # Informations sur les modèles
+                    st.caption(f"""
+                    **LightGBM Base 2015-2017**: Modèle baseline entraîné sur {len(expected_features) if model_base_2015 else 'N/A'} features avec paramètres par défaut. 
+                    Période d'entraînement: 80% des données 2015-2017. Normalisation StandardScaler appliquée.
+                    
+                    **LightGBM Optimisé 2015-2017**: Modèle optimisé par GridSearchCV sur 34 features. 
+                    Hyperparamètres: learning_rate, num_leaves, max_depth, n_estimators optimisés pour minimiser la MAE.
+                    """)
             else:
                 st.info("Modèles 2015-2017 non disponibles. Vérifiez que les fichiers .pkl sont dans models/France_models/")
         
@@ -877,7 +893,7 @@ def render_models_tab(df_2015, df_2020):
     
     # Graphiques pour 2020-2025
     if df_2020 is not None and not df_2020.empty:
-        st.markdown("#### 🔹 Prédictions 2020-2025")
+        st.markdown("#### Prédictions 2020-2025")
         
         try:
             # Charger les modèles
@@ -889,64 +905,76 @@ def render_models_tab(df_2015, df_2020):
                 sample_2020 = df_2020.tail(60 * 24).copy()
                 
                 if 'price_day_ahead' in sample_2020.columns:
-                    # Features exactes utilisées pour le modèle base (11 features du script SARIMAX)
-                    features_base = ['gas', 'coal', 'nuclear', 'solar', 'wind', 'biomass', 'waste', 'load', 'temperature', 'cloud_cover', 'wind_speed']
-                    features_base = [f for f in features_base if f in sample_2020.columns]
-                    
-                    # Pour le modèle optimisé, utiliser toutes les features sauf les colonnes techniques
-                    drop_cols_technical = ['day_name', 'season_lbl', 'season', 'price_raw', 'load_bin', 'utc_timestamp', 'date']
-                    drop_cols_technical = [c for c in drop_cols_technical if c in sample_2020.columns]
-                    drop_cols_leakage = [c for c in sample_2020.columns if 'price_day_ahead' in c and 'lag' not in c and 'rolling' not in c]
-                    drop_cols_opt = list(set(drop_cols_technical + drop_cols_leakage))
-                    
                     y_true = sample_2020['price_day_ahead']
                     
                     fig_pred_2020 = go.Figure()
                     
-                    # Prix réel (couleur visible sur fond sombre)
+                    # Prix réel
                     fig_pred_2020.add_trace(go.Scatter(
                         x=sample_2020.index,
                         y=y_true,
                         mode='lines',
                         name='Prix Réel',
-                        line=dict(color='#FFFFFF', width=2)  # Blanc
+                        line=dict(color='#FFFFFF', width=2)
                     ))
                     
-                    # Prédiction LightGBM Base (11 features)
-                    if model_base_2020 is not None and len(features_base) == 11:
+                    # Prédiction LightGBM Base (11 features spécifiques)
+                    if model_base_2020 is not None:
                         try:
-                            X_sample_base = sample_2020[features_base].fillna(0)
-                            y_pred_base = model_base_2020.predict(X_sample_base)
-                            mae_base_viz = np.mean(np.abs(y_true - y_pred_base))
+                            # Features exactes du modèle base
+                            features_base = ['gas', 'coal', 'nuclear', 'solar', 'wind', 'biomass', 'waste', 'load', 'temperature', 'cloud_cover', 'wind_speed']
+                            features_base = [f for f in features_base if f in sample_2020.columns]
                             
-                            fig_pred_2020.add_trace(go.Scatter(
-                                x=sample_2020.index,
-                                y=y_pred_base,
-                                mode='lines',
-                                name=f'LightGBM Base (MAE: {mae_base_viz:.2f})',
-                                line=dict(color='#FFB74D', width=1.5, dash='dash'),  # Orange clair
-                                opacity=0.9
-                            ))
+                            if len(features_base) == 11:
+                                X_sample_base = sample_2020[features_base].fillna(0)
+                                y_pred_base = model_base_2020.predict(X_sample_base)
+                                mae_base_viz = np.mean(np.abs(y_true - y_pred_base))
+                                
+                                fig_pred_2020.add_trace(go.Scatter(
+                                    x=sample_2020.index,
+                                    y=y_pred_base,
+                                    mode='lines',
+                                    name=f'LightGBM Base (MAE: {mae_base_viz:.2f})',
+                                    line=dict(color='#FFB74D', width=1.5, dash='dash'),
+                                    opacity=0.9
+                                ))
+                            else:
+                                st.warning(f"Features manquantes pour modèle base. Attendu: 11, Trouvé: {len(features_base)}")
                         except Exception as e:
                             st.warning(f"Erreur prédiction base 2020: {e}")
-                    elif model_base_2020 is not None:
-                        st.warning(f"Features manquantes pour modèle base. Attendu: 11, Trouvé: {len(features_base)}")
                     
-                    # Prédiction LightGBM Optimisé (toutes les features)
+                    # Prédiction LightGBM Optimisé (65 features engineered)
                     if model_opt_2020 is not None:
                         try:
-                            X_sample_opt = sample_2020.drop(columns=drop_cols_opt, errors='ignore').fillna(0)
-                            y_pred_opt = model_opt_2020.predict(X_sample_opt)
-                            mae_opt_viz = np.mean(np.abs(y_true - y_pred_opt))
+                            # Utiliser les features exactes attendues par le modèle
+                            expected_features = model_opt_2020.feature_name_
                             
-                            fig_pred_2020.add_trace(go.Scatter(
-                                x=sample_2020.index,
-                                y=y_pred_opt,
-                                mode='lines',
-                                name=f'LightGBM Optimisé (MAE: {mae_opt_viz:.2f})',
-                                line=dict(color='#81C784', width=2),  # Vert clair
-                                opacity=0.9
-                            ))
+                            # Préparer X avec toutes les colonnes disponibles
+                            drop_cols_technical = ['day_name', 'season_lbl', 'season', 'price_raw', 'load_bin', 'utc_timestamp', 'date']
+                            drop_cols_technical = [c for c in drop_cols_technical if c in sample_2020.columns]
+                            drop_cols_leakage = [c for c in sample_2020.columns if 'price_day_ahead' in c and 'lag' not in c and 'rolling' not in c]
+                            drop_cols = list(set(drop_cols_technical + drop_cols_leakage))
+                            
+                            X_all = sample_2020.drop(columns=drop_cols, errors='ignore').fillna(0)
+                            
+                            # Sélectionner uniquement les features attendues dans le bon ordre
+                            available_features = [f for f in expected_features if f in X_all.columns]
+                            X_sample_opt = X_all[available_features]
+                            
+                            if len(available_features) == len(expected_features):
+                                y_pred_opt = model_opt_2020.predict(X_sample_opt)
+                                mae_opt_viz = np.mean(np.abs(y_true - y_pred_opt))
+                                
+                                fig_pred_2020.add_trace(go.Scatter(
+                                    x=sample_2020.index,
+                                    y=y_pred_opt,
+                                    mode='lines',
+                                    name=f'LightGBM Optimisé (MAE: {mae_opt_viz:.2f})',
+                                    line=dict(color='#81C784', width=2),
+                                    opacity=0.9
+                                ))
+                            else:
+                                st.warning(f"Features manquantes pour modèle optimisé. Attendu: {len(expected_features)}, Trouvé: {len(available_features)}")
                         except Exception as e:
                             st.warning(f"Erreur prédiction optimisé 2020: {e}")
                     
@@ -960,16 +988,26 @@ def render_models_tab(df_2015, df_2020):
                     )
                     
                     st.plotly_chart(fig_pred_2020, use_container_width=True)
-                    st.caption("📝 Prédictions réelles générées par les modèles sauvegardés.")
+                    
+                    # Informations sur les modèles
+                    st.caption("""
+                    **LightGBM Base 2020-2025**: Modèle baseline entraîné sur 11 features brutes (production énergétique, consommation, météo). 
+                    Paramètres par défaut, split temporel 80/20. Adapté pour capturer les relations de base entre production et prix.
+                    
+                    **LightGBM Optimisé 2020-2025**: Modèle avancé avec 65 features engineered incluant lags temporels, rolling windows, 
+                    features dérivées et interactions. Optimisé par GridSearchCV pour gérer la volatilité de la crise énergétique 2022.
+                    Hyperparamètres: learning_rate=0.05, num_leaves=100, max_depth=10, n_estimators=500.
+                    """)
             else:
                 st.info("Modèles 2020-2025 non disponibles. Vérifiez que les fichiers .pkl sont dans models/France_models/")
         
         except Exception as e:
             st.error(f"Erreur lors du chargement des modèles 2020-2025: {e}")
     
-    st.success("""
-    ✅ **Prédictions réelles** : Les graphiques ci-dessus utilisent les modèles sauvegardés pour générer de vraies prédictions.
-    Les MAE affichées dans les légendes correspondent aux erreurs réelles sur la période visualisée.
+    st.info("""
+    **Note**: Les prédictions affichées utilisent les modèles sauvegardés chargés depuis models/France_models/. 
+    Les MAE (Mean Absolute Error) indiquées dans les légendes correspondent aux erreurs réelles calculées sur la période visualisée.
+    Les modèles ont été entraînés sur des splits temporels (80% train, 20% test) pour respecter la nature séquentielle des données.
     """)
 
 
