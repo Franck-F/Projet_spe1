@@ -791,22 +791,26 @@ def render_models_tab(df_2015, df_2020):
                     sample_2015['dayofweek'] = sample_2015.index.dayofweek
                     sample_2015['hour'] = sample_2015.index.hour
                     
-                    # Encoder la saison si elle existe
+                    # Encoder la saison si elle existe (mais ne pas l'inclure dans les features)
                     if 'season' in sample_2015.columns:
                         season_encoding = {'Winter': 0, 'Spring': 1, 'Summer': 2, 'Fall': 3}
-                        sample_2015['season'] = sample_2015['season'].map(season_encoding)
+                        sample_2015_encoded = sample_2015.copy()
+                        sample_2015_encoded['season'] = sample_2015_encoded['season'].map(season_encoding)
+                    else:
+                        sample_2015_encoded = sample_2015.copy()
                     
                     # Exclure les colonnes non-numériques et la target
-                    exclude_cols = ['price_day_ahead', 'day_name', 'season_lbl', 'date', 'utc_timestamp']
-                    feature_cols = [c for c in sample_2015.columns if c not in exclude_cols]
+                    exclude_cols = ['price_day_ahead', 'day_name', 'season_lbl', 'date', 'utc_timestamp', 'season']
+                    feature_cols = [c for c in sample_2015_encoded.columns if c not in exclude_cols]
                     
-                    X_sample = sample_2015[feature_cols].fillna(0)
+                    X_sample = sample_2015_encoded[feature_cols].fillna(0)
                     y_true = sample_2015['price_day_ahead']
                     
-                    # Normaliser si scaler disponible
+                    # Normaliser avec scaler (OBLIGATOIRE - le modèle attend des données normalisées)
                     if scaler_2015 is not None:
                         X_sample_scaled = scaler_2015.transform(X_sample)
                     else:
+                        st.warning("Scaler non disponible pour 2015-2017")
                         X_sample_scaled = X_sample.values
                     
                     fig_pred_2015 = go.Figure()
@@ -821,7 +825,7 @@ def render_models_tab(df_2015, df_2020):
                     ))
                     
                     # Prédiction LightGBM Base
-                    if model_base_2015 is not None:
+                    if model_base_2015 is not None and scaler_2015 is not None:
                         try:
                             y_pred_base = model_base_2015.predict(X_sample_scaled)
                             mae_base_viz = np.mean(np.abs(y_true - y_pred_base))
@@ -838,7 +842,7 @@ def render_models_tab(df_2015, df_2020):
                             st.warning(f"Erreur prédiction base: {e}")
                     
                     # Prédiction LightGBM Optimisé
-                    if model_opt_2015 is not None:
+                    if model_opt_2015 is not None and scaler_2015 is not None:
                         try:
                             y_pred_opt = model_opt_2015.predict(X_sample_scaled)
                             mae_opt_viz = np.mean(np.abs(y_true - y_pred_opt))
@@ -885,23 +889,17 @@ def render_models_tab(df_2015, df_2020):
                 sample_2020 = df_2020.tail(60 * 24).copy()
                 
                 if 'price_day_ahead' in sample_2020.columns:
-                    # Préparer les features exactement comme dans le script d'entraînement
-                    # Colonnes techniques à supprimer
+                    # Features exactes utilisées pour le modèle base (11 features du script SARIMAX)
+                    features_base = ['gas', 'coal', 'nuclear', 'solar', 'wind', 'biomass', 'waste', 'load', 'temperature', 'cloud_cover', 'wind_speed']
+                    features_base = [f for f in features_base if f in sample_2020.columns]
+                    
+                    # Pour le modèle optimisé, utiliser toutes les features sauf les colonnes techniques
                     drop_cols_technical = ['day_name', 'season_lbl', 'season', 'price_raw', 'load_bin', 'utc_timestamp', 'date']
                     drop_cols_technical = [c for c in drop_cols_technical if c in sample_2020.columns]
-                    
-                    # Colonnes de leakage (price_day_ahead sauf lags et rolling)
                     drop_cols_leakage = [c for c in sample_2020.columns if 'price_day_ahead' in c and 'lag' not in c and 'rolling' not in c]
+                    drop_cols_opt = list(set(drop_cols_technical + drop_cols_leakage))
                     
-                    # Fusionner
-                    drop_cols = list(set(drop_cols_technical + drop_cols_leakage))
-                    
-                    # Créer X et y
-                    X_sample = sample_2020.drop(columns=drop_cols, errors='ignore')
                     y_true = sample_2020['price_day_ahead']
-                    
-                    # Remplir les NaN
-                    X_sample = X_sample.fillna(0)
                     
                     fig_pred_2020 = go.Figure()
                     
@@ -914,10 +912,11 @@ def render_models_tab(df_2015, df_2020):
                         line=dict(color='#FFFFFF', width=2)  # Blanc
                     ))
                     
-                    # Prédiction LightGBM Base
-                    if model_base_2020 is not None:
+                    # Prédiction LightGBM Base (11 features)
+                    if model_base_2020 is not None and len(features_base) == 11:
                         try:
-                            y_pred_base = model_base_2020.predict(X_sample)
+                            X_sample_base = sample_2020[features_base].fillna(0)
+                            y_pred_base = model_base_2020.predict(X_sample_base)
                             mae_base_viz = np.mean(np.abs(y_true - y_pred_base))
                             
                             fig_pred_2020.add_trace(go.Scatter(
@@ -930,11 +929,14 @@ def render_models_tab(df_2015, df_2020):
                             ))
                         except Exception as e:
                             st.warning(f"Erreur prédiction base 2020: {e}")
+                    elif model_base_2020 is not None:
+                        st.warning(f"Features manquantes pour modèle base. Attendu: 11, Trouvé: {len(features_base)}")
                     
-                    # Prédiction LightGBM Optimisé
+                    # Prédiction LightGBM Optimisé (toutes les features)
                     if model_opt_2020 is not None:
                         try:
-                            y_pred_opt = model_opt_2020.predict(X_sample)
+                            X_sample_opt = sample_2020.drop(columns=drop_cols_opt, errors='ignore').fillna(0)
+                            y_pred_opt = model_opt_2020.predict(X_sample_opt)
                             mae_opt_viz = np.mean(np.abs(y_true - y_pred_opt))
                             
                             fig_pred_2020.add_trace(go.Scatter(
