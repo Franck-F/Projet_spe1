@@ -1,88 +1,120 @@
-# Projet : Prédiction du prix de l'électricité en Europe
+# ⚡ Prédiction & Analyse du Prix de l'Électricité en Europe
+
 ![alt text](image.png)
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=Streamlit&logoColor=white)
+![Scikit-Learn](https://img.shields.io/badge/scikit--learn-%23F7931E.svg?style=for-the-badge&logo=scikit-learn&logoColor=white)
+![Pandas](https://img.shields.io/badge/pandas-%23150458.svg?style=for-the-badge&logo=pandas&logoColor=white)
+![Plotly](https://img.shields.io/badge/Plotly-%233F4F75.svg?style=for-the-badge&logo=plotly&logoColor=white)
+![LightGBM](https://img.shields.io/badge/LightGBM-%233F4F75.svg?style=for-the-badge&logo=LightGBM&logoColor=white)
 
-Ce projet vise à prédire le prix day-ahead de l'électricité en Europe (focus France et Danemark) en utilisant des techniques de Machine Learning avancées et des séries temporelles. Il analyse les données de 2020 à 2025 (incluant la crise énergétique et la stabilisation).
+---
 
-Principales réalisations :
+## 📖 À propos du projet
 
-- **Nettoyage avancé** : Gestion des doublons, imputation intelligente, traitement des outliers (Winsorization).
-- **Feature Engineering** : Création de ~50 variables (Lags, Rolling stats, Saisonalités, Mix énergétique).
-- **Modélisation Hybride** : Comparaison rigoureuse entre **LightGBM** (Machine Learning) et **SARIMAX** (Séries Temporelles).
-- **Interprétabilité** : Analyse SHAP pour comprendre les facteurs d'influence.
+Ce projet vise à **prédire et analyser les prix "day-ahead" de l'électricité en Europe** (avec un focus sur la France et le Danemark) sur la période critique **2020-2025**. Cette période inclut des dynamiques de marché complexes : stabilité initiale, choc de la crise COVID-19, et crise énergétique majeure de 2022.
 
-### Structure du projet
+L'objectif est double :
+1.  **Modéliser** les prix futurs grâce à des algorithmes de Machine Learning (LightGBM) et de séries temporelles (SARIMAX).
+2.  **Visualiser et Expliquer** les dynamiques de marché via un Dashboard interactif complet.
 
-```
+---
+
+## 🚀 Fonctionnalités Clés
+
+### 📊 Dashboard Interactif (Streamlit)
+Une application web complète pour explorer les données et les modèles :
+*   **Vue d'Ensemble** : Métriques clés (Prix moyen, Volatilité) par période.
+*   **Analyse EDA** : Distribution des prix, saisonnalités, détection d'outliers.
+*   **Mix Énergétique** : Impact des énergies renouvelables vs fossiles.
+*   **Performance Modèles** : Comparaison Visuelle (Réel vs Prédictions) et métriques (MAE/RMSE).
+*   **Analyse de Volatilité** : Graphiques "Crosse de Hockey" (Merit Order) et analyse SHAP.
+
+### 🧠 Pipeline Machine Learning
+*   **Feature Engineering avancé** :
+    *   Variables temporelles (Saisons, Heures, Jours fériés).
+    *   Lag Features (Prix passés à 1h, 24h, 168h) pour capturer l'inertie.
+    *   Rolling Statistics (Moyennes mobiles, volatilité glissante).
+*   **Modèles Comparés** :
+    *   **LightGBM** (Gradient Boosting) : Excellent pour capturer les non-linéarités complexes.
+    *   **SARIMAX** : Référence statistique pour les séries temporelles.
+
+---
+
+## 📂 Structure du Projet
+
+```text
 electricite-prediction-europe/
 │
-├── data/                           # Données
-│   ├── raw/                        # time_series_60min_fr_dk_2020_2025.csv (Source)
-│   ├── processed/                  # df_eda_cleaned.csv, df_features.csv (Intermédiaires)
+├── 📊 dashboard/                 # Application Streamlit
+│   ├── app.py                    # Point d'entrée principal
+│   ├── views/                    # Pages du dashboard (France, Danemark, Comparaison)
+│   ├── Analyse/                  # Modules d'analyse métier (Logique EDA, ML)
+│   └── asset/                    # Ressources statiques (Images, Drapeaux)
 │
-├── notebooks/                      # Notebooks Modulaires (2020-2025)
-│   ├── France_2020_2025_EDA.ipynb        # 1. Analyse Exploratoire (EDA) & Nettoyage
-│   ├── France_2020_2025_Features.ipynb   # 2. Feature Engineering
-│   ├── France_2020_2025_Modeling.ipynb   # 3. Modélisation (LightGBM vs SARIMAX)
-│   └── Anciens/                          # (Archives 2015-2017)
+├── 📓 notebooks/                 # Labo de Data Science
+│   └── France/                   # Modélisation Focus France
+│       ├── France_2020_2025_EDA.ipynb        # Exploration & Nettoyage
+│       ├── France_2020_2025_Features.ipynb   # Feature Engineering (Lags, Rolling stats)
+│       └── France_2020_2025_Modeling.ipynb   # Entraînement & Validation (LightGBM/SARIMAX)
 │
-├── src/                            # Code réutilisable (WIP)
-├── models/                         # Modèles sauvegardés (.pkl)
-├── requirements.txt                # Dépendances Python
-└── README.md                       # Documentation
+├── 🛠 src/                       # Scripts utilitaires
+│   └── data_downloader.py        # Script de téléchargement des données OPSD
+│
+├── 💾 data/
+│   ├── raw/                      # Données brutes (ENTSO-E/OPSD)
+│   └── processed/                # Données nettoyées (Parquet/CSV)
+│
+├── 📦 models/                    # Modèles ML sérialisés (.pkl)
+│
+├── 📄 rapports/                  # Documentation & Slides
+│   └── Projet1-DataBI.pdf        # Présentation du projet
+│
+└── requirements.txt              # Dépendances du projet
 ```
 
-### Détail des Notebooks (Workflow 2020-2025)
+---
 
-**1. `France_2020_2025_EDA.ipynb` (Exploration & Nettoyage)**
+## 🛠 Installation et Utilisation
 
-- **Objectif** : Comprendre la donnée et la nettoyer.
-- **Actions** :
-  - Chargement et typage des colonnes (France uniquement).
-  - Gestion des valeurs manquantes : Suppression si >50% manquants, Imputation temporelle sinon.
-  - **Analyses Visuelles** : Distribution des prix, corrélations (Heatmaps), évolution temporelle.
-  - **Mix Énergétique** : Analyse de la part Nucléaire/Renouvelable/Fossile.
-  - **Outliers** : Détection (IQR) et traitement par **Winsorization** (clipping) pour stabiliser l'apprentissage sans perdre l'information des pics.
+### 1. Cloner et Installer
+Assurez-vous d'avoir **Python 3.10+**.
 
-**2. `France_2020_2025_Features.ipynb` (Ingénierie des Variables)**
-
-- **Objectif** : Créer des variables prédictives pour le ML.
-- **Features créées** (~48 variables) :
-  - *Temporelles* : Heure, Jour, Mois, Saisons, Jours fériés, Weekend.
-  - *Lags* : Prix décalés (1h, 24h, 1 semaine) pour capturer l'autocorrélation.
-  - *Rolling Stats* : Moyennes/Ecarts-types mobiles sur 6h, 24h.
-  - *Métier* : Charge résiduelle, Ratio renouvelable, Capacité disponible.
-
-**3. `France_2020_2025_Modeling.ipynb` (Modélisation & Évaluation)**
-
-- **Objectif** : Prédire le prix sur les 9 derniers mois de 2025.
-- **Modèles** :
-  - **LightGBM** : Baseline vs Optimisé (GridSearch sur `num_leaves`, `learning_rate`, `n_estimators`).
-  - **SARIMAX** : Modèle statistique avec saisonnalité journalière (24h) entraîné sur l'ensemble du dataset.
-- **Évaluation** : Comparaison via MAE, RMSE, et R².
-- **Interprétation** : Analyse SHAP pour identifier les features clés (ex: Prix de la veille, Prix du gaz, Charge).
-
-### Installation et Utilisation
-
-1. **Prérequis** : Python 3.10+
-2. **Installation** :
-
-```powershell
-# Créer l'environnement
+```bash
+# Créer un environnement virtuel
 python -m venv .venv
-& .\.venv\Scripts\Activate.ps1
+
+# Activer l'environnement (Windows)
+.venv\Scripts\Activate.ps1
 
 # Installer les dépendances
 pip install -r requirements.txt
 ```
 
-3. **Lancer l'analyse** :
-    - Ouvrir Jupyter Lab : `jupyter lab`
-    - Exécuter les notebooks dans l'ordre : `EDA` -> `Features` -> `Modeling`.
+### 2. Lancer le Dashboard
+Pour explorer les résultats via l'interface interactive :
 
-### Résultats Clés
+```bash
+cd dashboard
+streamlit run app.py
+```
 
-- Le modèle **LightGBM** surpasse généralement SARIMAX grâce à sa capacité à gérer les non-linéarités et les interactions complexes (ex: effet du mix énergétique sur le prix).
-- L'analyse SHAP révèle que les **prix passés (Lags)** et le **prix du gaz/CO2** sont souvent les prédicteurs les plus influents.
-- La **Winsorization** des prix a permis de réduire l'erreur (RMSE) en évitant que le modèle ne sur-réagisse aux pics extrêmes de 2022.
+### 3. Ré-entraîner les modèles (Optionnel)
+Si vous souhaitez régénérer les modèles :
+1.  Lancer `notebooks/France/France_2020_2025_EDA.ipynb`
+2.  Lancer `notebooks/France/France_2020_2025_Features.ipynb`
+3.  Lancer `notebooks/France/France_2020_2025_Modeling.ipynb`
 
-### Auteurs
+---
+
+## 📈 Résultats et Insights
+
+*   **Robustesse** : Le modèle **LightGBM Optimisé** atteint une MAE (Erreur Absolue Moyenne) très faible d'environ **0.85 €/MWh** sur le test set (hors crise extrême), surpassant largement les modèles statistiques classiques.
+*   **Interprétabilité** : L'analyse **SHAP** confirme que les prix passés (J-1) et le prix des combustibles (Gaz/CO2) sont les déterminants majeurs du prix de l'électricité.
+*   **Merit Order** : L'analyse de volatilité met clairement en évidence l'effet de seuil ("Crosse de Hockey") où les prix explosent exponentiellement lorsque la demande dépasse les capacités de base (Nucléaire/Renouvelable).
+
+---
+
+## Licence
+
+MIT
