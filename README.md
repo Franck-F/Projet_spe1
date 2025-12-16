@@ -7,6 +7,7 @@
 ![Pandas](https://img.shields.io/badge/pandas-%23150458.svg?style=for-the-badge&logo=pandas&logoColor=white)
 ![Plotly](https://img.shields.io/badge/Plotly-%233F4F75.svg?style=for-the-badge&logo=plotly&logoColor=white)
 ![LightGBM](https://img.shields.io/badge/LightGBM-%233F4F75.svg?style=for-the-badge&logo=LightGBM&logoColor=white)
+![SARIMAX](https://img.shields.io/badge/SARIMAX-%233F4F75.svg?style=for-the-badge&logo=LightGBM&logoColor=white)
 
 ---
 
