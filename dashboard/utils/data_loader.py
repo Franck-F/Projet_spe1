@@ -6,12 +6,12 @@ from pathlib import Path
 @st.cache_data
 def load_data():
     """
-    Loads the original electricity data (time_series_60min.csv) for backward compatibility.
+    Loads the enriched electricity data (2020-2025) for France and Denmark.
     Returns a pandas DataFrame.
     """
     possible_paths = [
-        "../data/raw/time_series_60min_fr_dk_2015_2020.csv",
-        "data/raw/time_series_60min_fr_dk_2015_2020.csv",
+        "../data/raw/time_series_60min_fr_dk_20-25_ENRICHIE_FULL.csv",
+        "data/raw/time_series_60min_fr_dk_20-25_ENRICHIE_FULL.csv",
     ]
     
     file_path = None

@@ -100,20 +100,43 @@ if df.empty:
     st.stop()
 
 # --- Sidebar ---
-st.sidebar.title("Informations")
+st.sidebar.title("📊 Informations")
 
 # Dataset Stats
-st.sidebar.subheader("📊 Dataset France")
+st.sidebar.subheader("🗂️ Datasets")
+
+# Période globale
 min_date = df.index.min().date()
 max_date = df.index.max().date()
 
 st.sidebar.info(f"""
-**Période** : 
+**Période Globale** :  
 {min_date.strftime('%d/%m/%Y')} - {max_date.strftime('%d/%m/%Y')}
 
-**Données** : 
-{len(df):,} observations
+**Total** : {len(df):,} observations
 """)
+
+# France
+fr_data = df[['FR_price_day_ahead']].dropna()
+st.sidebar.markdown("**🇫🇷 France**")
+st.sidebar.caption(f"""
+- Période : 2020-2025  
+- Observations : {len(fr_data):,}  
+- Prix moyen : {fr_data['FR_price_day_ahead'].mean():.2f} €/MWh
+""")
+
+# Danemark
+dk_data = df[['DK_1_price_day_ahead', 'DK_2_price_day_ahead']].dropna()
+if len(dk_data) > 0:
+    dk_avg = (dk_data['DK_1_price_day_ahead'] + dk_data['DK_2_price_day_ahead']) / 2
+    st.sidebar.markdown("**🇩🇰 Danemark**")
+    st.sidebar.caption(f"""
+    - Période : 2020-2025  
+    - Observations : {len(dk_data):,}  
+    - Prix moyen : {dk_avg.mean():.2f} €/MWh
+    """)
+
+st.sidebar.markdown("---")
 
 # Project Info
 st.sidebar.subheader("👥 Auteurs")
@@ -208,6 +231,8 @@ elif st.session_state.page == 'Denmark':
     if st.button("← Retour à l'accueil"):
         navigate_to('Home')
         st.rerun()
+    
+    # Pas de filtre de date - utiliser toutes les données DK disponibles
     render_denmark(df_filtered)
 
 elif st.session_state.page == 'Comparison':
