@@ -61,11 +61,11 @@ destination = "../data/raw/time_series_60min.csv"
 
 # Télécharger si pas déjà présent
 if not os.path.exists(destination):
-    print("⏳ Téléchargement du dataset (124 MB)... Patience!")
+    print(" Téléchargement du dataset (124 MB)... Patience!")
     urllib.request.urlretrieve(url, destination)
-    print("✅ Dataset téléchargé!")
+    print(" Dataset téléchargé!")
 else:
-    print("✅ Dataset déjà présent localement")
+    print(" Dataset déjà présent localement")
 
 # Charger dataset
 df = pd.read_csv('../data/raw/time_series_60min.csv',
@@ -76,9 +76,9 @@ df = pd.read_csv('../data/raw/time_series_60min.csv',
 # Définir timestamp comme index
 df = df.set_index('utc_timestamp')
 
-print(f"📊 Shape du dataset: {df.shape}")
-print(f"📅 Période: {df.index.min()} → {df.index.max()}")
-print(f"\n🔍 Premières lignes:")
+print(f" Shape du dataset: {df.shape}")
+print(f" Période: {df.index.min()} → {df.index.max()}")
+print(f"\n Premières lignes:")
 print(df.head(5))
 
 # =============================================================================
@@ -97,10 +97,10 @@ print(f"Dimensions: {df_france.shape[0]} lignes × {df_france.shape[1]} colonnes
 print(f"Période: {df_france.index.min()} à {df_france.index.max()}")
 
 # Aperçu des premières lignes
-print("\n📊 Aperçu des données:")
+print("\n Aperçu des données:")
 print(df_france.head())
 
-print("\n📈 Statistiques descriptives:")
+print("\n Statistiques descriptives:")
 print(df_france.describe())
 
 # Analyse avec skimpy et summarytools
@@ -134,7 +134,7 @@ if dup:
         print(f"\nExemple pour timestamp dupliqué: {ts}")
         print(df_france.loc[ts])
 else:
-    print("✅ Aucun doublon trouvé sur utc_timestamp.")
+    print("Aucun doublon trouvé sur utc_timestamp.")
 
 # =============================================================================
 # 4. ANALYSE DES VALEURS MANQUANTES
@@ -248,7 +248,7 @@ missing_df_all = (
 print("\nValeurs manquantes après interpolation:")
 print(missing_df_all)
 
-print("\n✅ Prétraitement terminé")
+print("\n Prétraitement terminé")
 print(df_france.head())
 
 # =============================================================================
@@ -378,7 +378,7 @@ fig.update_layout(
 fig.show()
 
 # 6.5 Décomposition saisonnière (STL)
-print("\n🔄 Décomposition saisonnière en cours...")
+print("Décomposition saisonnière en cours...")
 
 stl = STL(df_france['price'], seasonal=13, period=24*7)
 result = stl.fit()
@@ -465,7 +465,7 @@ df_featured['renewable_ratio'] = df_featured['renewable_generation'] / (df_featu
 # Supprimer les lignes avec NaN créées par les lags et moyennes mobiles
 df_featured = df_featured.dropna()
 
-print(f"✅ Features créées")
+print(f"Features créées")
 print(f"Nouvelles dimensions: {df_featured.shape}")
 print(f"\nColonnes disponibles:")
 print(df_featured.columns.tolist())
@@ -489,9 +489,9 @@ X_test = X.loc[X.index >= split_date]
 y_train = y.loc[y.index < split_date]
 y_test = y.loc[y.index >= split_date]
 
-print(f"📊 Ensemble d'entraînement: {X_train.shape}")
-print(f"📊 Ensemble de test: {X_test.shape}")
-print(f"📅 Date de split: {split_date}")
+print(f" Ensemble d'entraînement: {X_train.shape}")
+print(f" Ensemble de test: {X_test.shape}")
+print(f" Date de split: {split_date}")
 
 # =============================================================================
 # 9. MODÈLE DE BASE (LIGHTGBM SANS OPTIMISATION)
@@ -503,9 +503,9 @@ print("="*60)
 
 # Entraînement du modèle
 model = lgb.LGBMRegressor(random_state=42)
-print("\n⏳ Entraînement en cours...")
+print(" Entraînement en cours...")
 model.fit(X_train, y_train)
-print("✅ Entraînement terminé")
+print(" Entraînement terminé")
 
 # Prédictions
 y_pred = model.predict(X_test)
@@ -606,7 +606,7 @@ print(f"Ensemble de validation: {X_val.shape}")
 print(f"Ensemble de test: {X_test.shape}\n")
 
 # Lancement de l'optimisation
-print("🔧 Début du réglage d'hyperparamètres avec Optuna...")
+print("Début du réglage d'hyperparamètres avec Optuna...")
 print("(Cela peut prendre plusieurs minutes)")
 
 study = optuna.create_study(direction='minimize')
@@ -615,7 +615,7 @@ study.optimize(
     n_trials=50
 )
 
-print("\n✅ Réglage terminé!")
+print("Réglage terminé!")
 print(f"Meilleur MAE: {study.best_value:.4f} €/MWh")
 print("\nMeilleurs hyperparamètres:")
 for key, value in study.best_params.items():
@@ -636,9 +636,9 @@ y_train_final = pd.concat([y_train_full, y_val])
 best_params = study.best_params
 final_model = lgb.LGBMRegressor(**best_params, random_state=42)
 
-print("⏳ Entraînement en cours...")
+print("Entraînement en cours...")
 final_model.fit(X_train_final, y_train_final)
-print("✅ Entraînement terminé")
+print("Entraînement terminé")
 
 # Evaluation finale
 final_preds = final_model.predict(X_test)
@@ -706,19 +706,19 @@ best_params_shap = {
     'random_state': 42
 }
 
-print("\n⏳ Entraînement du modèle complet pour SHAP...")
+print(" Entraînement du modèle complet pour SHAP...")
 shap_model = lgb.LGBMRegressor(**best_params_shap)
 shap_model.fit(X, y)
-print("✅ Entraînement terminé")
+print("Entraînement terminé")
 
 # Calcul des valeurs SHAP
 test_start_date = df_featured.index.max() - pd.DateOffset(months=3)
 X_test_shap = X.loc[X.index >= test_start_date]
 
-print("\n⏳ Calcul des valeurs SHAP...")
+print("Calcul des valeurs SHAP...")
 explainer = shap.TreeExplainer(shap_model)
 shap_values = explainer.shap_values(X_test_shap)
-print("✅ Valeurs SHAP calculées")
+print("Valeurs SHAP calculées")
 
 # Visualisation 1: Importance globale des features
 if isinstance(shap_values, list):
@@ -785,11 +785,11 @@ fig.show()
 # =============================================================================
 
 print("\n" + "="*60)
-print("✅ Analyse terminée avec succès!")
+print("Analyse terminée avec succès!")
 print("="*60)
 print(f"\nRésumé des résultats:")
 print(f"  - MAE final: {final_mae:.2f} €/MWh")
 print(f"  - RMSE final: {final_rmse:.2f} €/MWh")
 print(f"  - Nombre de features: {X.shape[1]}")
 print(f"  - Période de test: {X_test.index.min()} → {X_test.index.max()}")
-print(f"\n📊 Graphiques générés et modèle entraîné avec succès!")
+print(f"Graphiques générés et modèle entraîné avec succès!")

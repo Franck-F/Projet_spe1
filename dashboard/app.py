@@ -100,7 +100,7 @@ if df.empty:
     st.stop()
 
 # --- Sidebar ---
-st.sidebar.title("📊 Informations")
+st.sidebar.title("Informations")
 
 # Dataset Stats
 st.sidebar.subheader("🗂️ Datasets")
