@@ -100,22 +100,37 @@ if df.empty:
     st.stop()
 
 # --- Sidebar ---
-st.sidebar.header("Filtres")
+st.sidebar.title("Informations")
 
-# Date Range Filter
+# Dataset Stats
+st.sidebar.subheader("📊 Dataset France")
 min_date = df.index.min().date()
 max_date = df.index.max().date()
 
-start_date = st.sidebar.date_input("Date de début", min_date, min_value=min_date, max_value=max_date)
-end_date = st.sidebar.date_input("Date de fin", max_date, min_value=min_date, max_value=max_date)
+st.sidebar.info(f"""
+**Période** : 
+{min_date.strftime('%d/%m/%Y')} - {max_date.strftime('%d/%m/%Y')}
 
-if start_date > end_date:
-    st.sidebar.error("La date de début doit être antérieure à la date de fin.")
-    st.stop()
+**Données** : 
+{len(df):,} observations
+""")
 
-# Filter Data
-mask = (df.index.date >= start_date) & (df.index.date <= end_date)
-df_filtered = df.loc[mask]
+# Project Info
+st.sidebar.subheader("👥 Auteurs")
+st.sidebar.markdown("""
+*   Franck F.
+*   Charlotte M.
+*   Djourah O.
+*   Koffi A.
+*   Youssef S.
+""")
+
+st.sidebar.markdown("---")
+st.sidebar.caption("Projet DataBI - 2025")
+
+# No more specific filtering for global dataframe
+# df_filtered is now just df
+df_filtered = df
 
 # --- Navigation & Content ---
 
@@ -205,9 +220,10 @@ elif st.session_state.page == 'Comparison':
 st.markdown("---")
 st.markdown(
     """
-    <div style='text-align: center; color: grey; padding: 20px;'>
-        Auteurs : Franck F. --- Charlotte M. --- Djourah O. --- Koffi A. --- Youssef S.
+    <div style='text-align: center; color: grey; padding: 10px; font-size: 0.9em;'>
+        © 2025 Projet DataBI - Tous droits réservés
     </div>
     """,
     unsafe_allow_html=True
 )
+

@@ -306,23 +306,96 @@ def render_shap_tab(df_2015=None, df_2020=None):
             # Top 20 features
             df_shap_viz = df_shap_viz.sort_values(by='Importance', ascending=True).tail(20)
             
-            fig_shap = px.bar(df_shap_viz, 
-                         x='Importance', 
-                         y='Feature', 
-                         orientation='h',
-                         title='<b>Importance des Features (SHAP Global - Top 20)</b>',
-                         text_auto='.2f',  
-                         color='Importance',
-                         color_continuous_scale='Viridis')
+            # Dictionnaire de features (texte utilisateur)
+            lexique_features = {
+                # Lags prix
+                'price_lag_1h': "**Prix observé 1 heure avant** l'instant courant.\nCapture la dépendance très court terme.",
+                'price_lag_3h': "**Prix observé 3 heures avant.**\nReprésente l'inertie du prix à horizon intra‑quotidien.",
+                'price_lag_6h': "**Prix observé 6 heures avant.**\nPermet de capter les patterns sur un quart de journée.",
+                'price_lag_12h': "**Prix observé 12 heures avant.**\nCible des effets matin/soir ou jour/nuit.",
+                'price_lag_24h': "**Prix observé 24 heures avant.**\nReprésente la saisonnalité quotidienne (même heure la veille).",
+                'price_lag_168h': "**Prix observé 168 heures avant** (7 jours).\nCapture la saisonnalité hebdomadaire (même heure une semaine avant).",
+                
+                # Rolling prix
+                'price_rolling_mean_6h': "**Moyenne des prix** sur les 6, 24 ou 168 dernières heures.\nReprésente le niveau moyen de prix à court terme (6h), journalier (24h) ou hebdomadaire (168h).",
+                'price_rolling_mean_24h': "**Moyenne des prix** sur les 6, 24 ou 168 dernières heures.\nReprésente le niveau moyen de prix à court terme (6h), journalier (24h) ou hebdomadaire (168h).",
+                'price_rolling_mean_168h': "**Moyenne des prix** sur les 6, 24 ou 168 dernières heures.\nReprésente le niveau moyen de prix à court terme (6h), journalier (24h) ou hebdomadaire (168h).",
+                
+                'price_rolling_std_6h': "**Écart‑type des prix** sur les 6, 24 ou 168 dernières heures.\nMesure la volatilité récente à ces trois horizons.",
+                'price_rolling_std_24h': "**Écart‑type des prix** sur les 6, 24 ou 168 dernières heures.\nMesure la volatilité récente à ces trois horizons.",
+                'price_rolling_std_168h': "**Écart‑type des prix** sur les 6, 24 ou 168 dernières heures.\nMesure la volatilité récente à ces trois horizons.",
+                
+                'price_rolling_min_6h': "**Minimum des prix** observés sur les 6, 24 ou 168 dernières heures.\nDonne le « plancher » de prix récent (intra‑jour, jour, semaine).",
+                'price_rolling_min_24h': "**Minimum des prix** observés sur les 6, 24 ou 168 dernières heures.\nDonne le « plancher » de prix récent (intra‑jour, jour, semaine).",
+                'price_rolling_min_168h': "**Minimum des prix** observés sur les 6, 24 ou 168 dernières heures.\nDonne le « plancher » de prix récent (intra‑jour, jour, semaine).",
+                
+                'price_rolling_max_6h': "**Maximum des prix** observés sur les 6, 24 ou 168 dernières heures.\nDonne le « plafond » de prix récent à ces horizons.",
+                'price_rolling_max_24h': "**Maximum des prix** observés sur les 6, 24 ou 168 dernières heures.\nDonne le « plafond » de prix récent à ces horizons.",
+                'rolling_max_168': "**Maximum des prix** observés sur les 6, 24 ou 168 dernières heures.\nDonne le « plafond » de prix récent à ces horizons.",
+                
+                # Deltas prix
+                'price_delta': "**Variation absolue horaire** du prix.\nIndique la magnitude de hausse/baisse entre deux heures consécutives.",
+                'price_delta_pct': "**Variation relative horaire** du prix.\nNormalise la variation pour la rendre comparable à différents niveaux de prix.",
+                
+                # Production et mix
+                'renewable_generation': "**Puissance/énergie totale** issue des renouvelables variables (éolien + solaire, éventuellement hydro).\nReprésente la part de production à coût marginal faible et fortement dépendante de la météo.",
+                'total_generation': "**Production électrique totale**, toutes filières confondues.\nSert de référence pour calculer des ratios (mix, pénétration des ENR).",
+                'renewable_ratio': "**Part relative des renouvelables** dans la production totale.\nMesure la pénétration instantanée des ENR dans le mix.",
+                'nuclear': "**Production électrique d'origine nucléaire.**\nSource pilotable et peu émissive, clé pour le niveau de prix en France.",
+                'nuclear_bin': "**Version binaire** de l'information nucléaire.\n1 si production au‑dessus/dessous d'un seuil, 0 sinon.\nEncode les régimes de fonctionnement (forte dispo vs maintenance).",
+                
+                # Charge résiduelle et hydraulique
+                'residual_load': "**Charge résiduelle** : demande totale moins génération renouvelable variable.\nMesure la demande à couvrir par les moyens pilotables (nucléaire, thermique, stockage).",
+                'hydro_pumped': "**Puissance liée aux stations de pompage-turbinage** (pumped hydro).\nReflète l'utilisation du stockage hydraulique, important pour lisser les prix.",
+            }
+            
+            # Layout 2 colonnes
+            col_graph, col_lexique = st.columns([3, 1])
+            
+            with col_graph:
+                fig_shap = px.bar(df_shap_viz, 
+                             x='Importance', 
+                             y='Feature', 
+                             orientation='h',
+                             title='<b>Importance des Features (SHAP Global - Top 20)</b>',
+                             text_auto='.2f',  
+                             color='Importance',
+                             color_continuous_scale='Viridis')
 
-            fig_shap.update_layout(
-                height=800, 
-                xaxis_title="Impact Moyen absolu sur le prix (€/MWh)",
-                yaxis_title="",
-                font=dict(size=12),
-                template='plotly_dark'
-            )
-            st.plotly_chart(fig_shap, use_container_width=True)
+                fig_shap.update_layout(
+                    height=700, 
+                    xaxis_title="Impact Moyen absolu sur le prix (€/MWh)",
+                    yaxis_title="",
+                    font=dict(size=12),
+                    template='plotly_dark'
+                )
+                st.plotly_chart(fig_shap, use_container_width=True, key="shap_importance_plot_france")
+            
+            with col_lexique:
+                st.markdown("### 📖 Lexique Features")
+                st.caption("Définitions des variables :")
+                
+                # Récupérer les features affichées
+                top_features = df_shap_viz['Feature'].tolist()[::-1]  # Inverser pour avoir le top en haut
+                
+                for feat in top_features:
+                    # Recherche exacte puis partielle
+                    desc = lexique_features.get(feat)
+                    
+                    # Fallback pour les variantes (ex: rolling_mean_6h vs rolling_mean_6)
+                    if not desc:
+                        clean_feat = feat.replace('h', '')
+                        desc = lexique_features.get(clean_feat)
+                    
+                    if not desc:
+                        desc = f"Variable technique : **{feat}**"
+                    
+                    # Nettoyage du nom pour affichage
+                    feat_display = feat.replace("price_day_ahead", "Prix").replace("_", " ").title()
+                    
+                    with st.expander(f"📌 {feat_display}"):
+                        st.markdown(desc)
+
             
             # 5. Interprétation textuelle simple
             top_3 = df_shap_viz.sort_values(by='Importance', ascending=False).head(3)['Feature'].tolist()
@@ -471,6 +544,7 @@ def render_eda_tab(df_2020):
             )
             
             st.plotly_chart(fig_outliers, use_container_width=True)
+            st.info("💡 **Interprétation** : Ce graphique identifie les prix extrêmes (au-delà du 95e percentile) qui correspondent à des périodes de forte tension sur le marché. **Important** : les outliers sont calculés sur l'ensemble du dataset (2020-2025), donc ils reflètent les valeurs extrêmes par rapport à la tendance générale de toute la période. Les outliers sont principalement concentrés en 2022 lors de la crise énergétique européenne.")
             
             # Analyse temporelle des outliers
             if n_outliers > 0:
@@ -519,6 +593,7 @@ def render_eda_tab(df_2020):
     fig_line.update_traces(line_color='#EF553B')
     fig_line.update_layout(xaxis_title='Date', yaxis_title='Prix (€/MWh)')
     st.plotly_chart(fig_line, use_container_width=True)
+    st.info("💡 **Interprétation** : Cette courbe montre l'évolution quotidienne du prix moyen. On observe une forte volatilité en 2022 avec des pics dépassant 400 €/MWh, suivie d'une stabilisation progressive vers des niveaux plus normaux en 2023-2024.")
     st.caption("📝 Pic de crise énergétique visible mi-2022, suivi d'une normalisation progressive.")
     
     # Prix moyen annuel avec variation
@@ -559,6 +634,7 @@ def render_eda_tab(df_2020):
             template='plotly_dark'
         )
         st.plotly_chart(fig_annual, use_container_width=True)
+        st.info("💡 **Interprétation** : Les variations annuelles révèlent l'impact de la crise énergétique. 2022 montre une explosion des prix moyens par rapport à 2021, tandis que les années suivantes affichent une décrue progressive.")
     
     # Section 3: Saisonnalité
     st.markdown("### 🌍 Saisonnalité")
@@ -580,6 +656,7 @@ def render_eda_tab(df_2020):
                               })
             fig_season.update_layout(showlegend=False, xaxis_title="Saison", yaxis_title="Prix (€/MWh)")
             st.plotly_chart(fig_season, use_container_width=True)
+            st.caption("📝 L'hiver présente généralement des prix plus élevés en raison de la demande accrue en chauffage, tandis que l'été affiche des prix plus bas grâce à la production solaire.")
     
     with col2:
         # Prix par jour de la semaine
@@ -598,6 +675,7 @@ def render_eda_tab(df_2020):
                 template='plotly_dark'
             )
             st.plotly_chart(fig_weekly, use_container_width=True)
+            st.caption("📝 Les jours ouvrés (lundi-vendredi) affichent des prix moyens plus élevés que les week-ends, reflétant l'activité industrielle et commerciale.")
     
     # Profil horaire
     if 'hour' in df_2020.columns and 'is_weekend' in df_2020.columns:
@@ -610,6 +688,7 @@ def render_eda_tab(df_2020):
         fig_hourly.add_trace(go.Scatter(x=hourly_weekend.index, y=hourly_weekend, name='Weekend', line=dict(width=3)))
         fig_hourly.update_layout(title="<b>Profil Horaire</b>", xaxis_title='Heure', yaxis_title='Prix Moyen (€/MWh)', template='plotly_dark')
         st.plotly_chart(fig_hourly, use_container_width=True)
+        st.caption("📝 Le profil horaire montre deux pics de prix : un le matin (7h-9h) et un le soir (18h-20h), correspondant aux heures de pointe de consommation. Le week-end présente un profil plus plat.")
     
     # Section 4: Prix vs Load
     st.markdown("### ⚡ Prix vs Consommation")
@@ -633,6 +712,7 @@ def render_eda_tab(df_2020):
             template='plotly_dark'
         )
         st.plotly_chart(fig_load, use_container_width=True)
+        st.info("💡 **Interprétation** : Cette visualisation montre la relation entre le niveau de consommation et le prix moyen. On observe généralement une corrélation positive : plus la demande est élevée, plus le prix augmente, car il faut activer des moyens de production plus coûteux.")
 
 
 def render_energy_mix_tab(df_2020):
@@ -689,6 +769,7 @@ def render_energy_mix_tab(df_2020):
             marker=dict(line=dict(color='white', width=2))
         )
         st.plotly_chart(fig_pie, use_container_width=True)
+        st.info("💡 **Interprétation** : Ce graphique montre la répartition de la production électrique par source d'énergie sur la période 2020-2025. Le nucléaire domine largement le mix énergétique français, suivi de l'hydraulique et des énergies renouvelables variables (éolien, solaire).")
     
     with col2:
         # Tableau récapitulatif
@@ -701,6 +782,7 @@ def render_energy_mix_tab(df_2020):
         
         st.dataframe(mix_df, use_container_width=True)
         st.metric("Production Totale", f"{mix_df['Production (TWh)'].sum():.2f} TWh")
+        st.caption("📝 Le tableau récapitulatif présente la production cumulée par source en MWh et TWh, ainsi que la part relative de chaque source dans le mix total.")
     
     # Section 2: Évolution Temporelle
     st.markdown("### 📈 Évolution Mensuelle du Mix Énergétique")
@@ -750,6 +832,7 @@ def render_energy_mix_tab(df_2020):
             hovermode='x unified'
         )
         st.plotly_chart(fig_area, use_container_width=True)
+        st.info("💡 **Interprétation** : Ce graphique en aires empilées montre l'évolution mensuelle de la production par source d'énergie. On observe la stabilité du nucléaire (base), la variabilité saisonnière de l'hydraulique, et la montée en puissance progressive de l'éolien et du solaire au fil des années.")
     
     # Section 3: Prix vs Production Nucléaire
     if 'nuclear' in df_2020.columns and 'price_day_ahead' in df_2020.columns:
@@ -767,7 +850,7 @@ def render_energy_mix_tab(df_2020):
             labels={'nuclear_bin': 'Production Nucléaire (MW)', 'price_day_ahead': 'Prix Moyen (€/MWh)'}
         )
         st.plotly_chart(fig_nuclear, use_container_width=True)
-        st.caption("📝 Plus la production nucléaire est élevée, plus les prix tendent à être bas (production de base stable).")
+        st.info("💡 **Interprétation** : Cette visualisation montre la relation inverse entre production nucléaire et prix. Lorsque le parc nucléaire fonctionne à pleine capacité, l'offre d'électricité bon marché est abondante, ce qui fait baisser les prix. À l'inverse, une production nucléaire réduite (maintenance, arrêts) force le recours à des moyens plus coûteux.")
 
 
 def render_correlations_tab(df_2020):
@@ -800,6 +883,7 @@ def render_correlations_tab(df_2020):
     )
     fig_corr.update_layout(height=1000, width=1200, template='plotly_dark')
     st.plotly_chart(fig_corr, use_container_width=True)
+    st.info("💡 **Interprétation** : Cette heatmap présente les corrélations de Pearson entre toutes les variables numériques du dataset. Les valeurs proches de +1 (rouge) indiquent une forte corrélation positive, les valeurs proches de -1 (bleu) une forte corrélation négative, et les valeurs proches de 0 (blanc) une absence de corrélation linéaire.")
     
     # Section 2: Top Corrélations avec le Prix
     if 'price_day_ahead' in corr_matrix.columns:
@@ -820,6 +904,8 @@ def render_correlations_tab(df_2020):
             top_neg = price_corr.tail(10).reset_index()
             top_neg.columns = ['Feature', 'Corrélation']
             st.dataframe(top_neg, use_container_width=True)
+        
+        st.caption("📝 **Corrélations positives** : variables qui augmentent avec le prix (ex: demande, périodes de pointe). **Corrélations négatives** : variables qui diminuent quand le prix augmente (ex: production nucléaire, ENR abondantes).")
     
     # Section 3: Heatmap Focalisée
     st.markdown("### 🎯 Corrélation Focalisée (Load, Prix, Production)")
@@ -840,6 +926,7 @@ def render_correlations_tab(df_2020):
         )
         fig_focus.update_layout(height=600, width=800, template='plotly_dark')
         st.plotly_chart(fig_focus, use_container_width=True)
+        st.info("💡 **Interprétation** : Cette heatmap focalisée met en évidence les relations entre consommation, prix et sources de production. On observe notamment la corrélation négative entre production nucléaire et prix (plus de nucléaire = prix plus bas), et la corrélation positive entre demande (load) et prix (plus de demande = prix plus élevés).")
 
 
 def render_models_tab(df_2015, df_2020):
@@ -1005,12 +1092,17 @@ def render_models_tab(df_2015, df_2020):
     
     st.markdown("---")
     st.info("""
+    💡 **Interprétation des Métriques** :
+    - **MAE (Mean Absolute Error)** : Erreur moyenne en €/MWh. Plus elle est faible, plus le modèle est précis.
+    - **RMSE (Root Mean Squared Error)** : Pénalise davantage les grandes erreurs que la MAE.
+    - **R² (Coefficient de détermination)** : Mesure la qualité de l'ajustement (1.0 = parfait, 0.0 = modèle inutile).
+    
     **Insights clés** :
-    - **2015-2017** : Marché prévisible → LightGBM atteint des performances exceptionnelles.
-    - **2020-2025** : La crise énergétique de 2022 crée un "distribution shift". 
-      LightGBM reste performant grâce à l'optimisation des hyperparamètres.
-    - **SARIMAX** : Modèle statistique adapté aux données journalières, capture les tendances long terme.
-    - **Conclusion** : LightGBM optimisé est le meilleur modèle pour les deux périodes.
+    - **2015-2017** : Marché stable et prévisible → LightGBM atteint des performances exceptionnelles (R² > 0.95).
+    - **2020-2025** : La crise énergétique de 2022 crée un "distribution shift" majeur avec des prix extrêmes. 
+      LightGBM reste performant grâce à l'optimisation des hyperparamètres et à l'intégration de features robustes.
+    - **SARIMAX** : Modèle statistique classique adapté aux données journalières, capture bien les tendances long terme mais moins réactif aux variations horaires.
+    - **Conclusion** : LightGBM optimisé est le meilleur modèle pour les deux périodes, offrant le meilleur compromis précision/robustesse.
     """)
     
     # Hyperparamètres optimaux
@@ -1027,6 +1119,7 @@ def render_models_tab(df_2015, df_2020):
                 "Valeur": [str(v) for v in opt_2015['best_params'].values()]
             })
             st.dataframe(params_df, use_container_width=True)
+            st.caption("📝 Ces hyperparamètres ont été optimisés via GridSearchCV pour maximiser le R² sur le jeu de validation.")
         else:
             st.info("Hyperparamètres non disponibles")
     
@@ -1172,14 +1265,16 @@ def render_models_tab(df_2015, df_2020):
                     )
                     
                     st.plotly_chart(fig_pred_2015, use_container_width=True)
+                    st.info("💡 **Interprétation** : Ce graphique compare les prédictions des deux modèles LightGBM aux prix réels sur les 30 derniers jours de la période 2015-2017. Le modèle optimisé (vert) suit de très près la courbe réelle (blanc), démontrant une excellente capacité de prédiction sur un marché stable.")
                     
-                    # Informations sur les modèles
                     st.caption(f"""
-                    **LightGBM Base 2015-2017**: Modèle de référence incluant des indicateurs de tendance court-terme (moyennes mobiles 24h). 
+                    📝 **Différences entre les modèles 2015-2017** :
+                    
+                    **LightGBM Base**: Modèle de référence incluant des indicateurs de tendance court-terme (moyennes mobiles 24h). 
                     Il sert de benchmark pour évaluer l'apport des fondamentaux de marché face à la simple inertie des prix.
                     
-                    **LightGBM Optimisé 2015-2017**: Modèle avancé focalisé sur les fondamentaux. 
-                    Il exclut les tendances de prix inertielles (rolling 24h) pour mieux capturer la causalité physique (Météo, Charge, Production). 
+                    **LightGBM Optimisé**: Modèle avancé focalisé sur les fondamentaux physiques du marché. 
+                    Il exclut les tendances de prix inertielles (rolling 24h) pour mieux capturer la causalité (Météo, Charge, Production). 
                     Sa configuration a été ajustée par GridSearch pour maximiser la généralisation sur les pics de prix.
                     """)
             else:
@@ -1327,6 +1422,7 @@ def render_models_tab(df_2015, df_2020):
                         **layout_config
                     )
                     st.plotly_chart(fig_compare, use_container_width=True)
+                    st.info("💡 **Interprétation** : Ce graphique compare les prédictions des modèles LightGBM aux prix réels sur les 60 derniers jours de la période 2020-2025. Même face à la volatilité accrue de cette période (incluant potentiellement des résidus de la crise 2022), le modèle optimisé maintient une bonne précision.")
                     
                     # --- VIZ 2: Résidus ---
                     from plotly.subplots import make_subplots
@@ -1348,18 +1444,20 @@ def render_models_tab(df_2015, df_2020):
                     if has_res:
                         fig_res.update_layout(height=400, title_text="Analyse des Résidus (Live)", showlegend=False, template='plotly_dark')
                         st.plotly_chart(fig_res, use_container_width=True)
+                        st.caption("📝 **Analyse des résidus** : Les résidus (différence entre prédiction et réalité) permettent d'évaluer la qualité du modèle. Des résidus centrés autour de zéro et sans pattern visible indiquent un bon modèle. Des résidus importants révèlent des événements que le modèle n'a pas anticipés.")
 
                 else:
                     st.warning("Données live (y_true) non disponibles pour la visualisation.")
 
                     
-                    # Informations sur les modèles
                     st.caption("""
-                    **LightGBM Base 2020-2025**: Modèle baseline utilisant les **mêmes features** que le script d'entraînement (incluant historiques de prix). 
+                    📝 **Différences entre les modèles 2020-2025** :
+                    
+                    **LightGBM Base**: Modèle baseline utilisant les **mêmes features** que le script d'entraînement (incluant historiques de prix et lags). 
                     Il sert de référence (MAE faible attendue ~1-2 €/MWh en test) pour valider que le pipeline de données est cohérent.
                     
-                    **LightGBM Optimisé 2020-2025**: Modèle identique côté features mais avec des **hyperparamètres affinés** via GridSearchCV (learning_rate, depth, leaves)
-                    pour maximiser la robustesse face aux pics de volatilité.
+                    **LightGBM Optimisé**: Modèle identique côté features mais avec des **hyperparamètres affinés** via GridSearchCV (learning_rate, depth, leaves)
+                    pour maximiser la robustesse face aux pics de volatilité et aux événements extrêmes comme la crise 2022.
                     """)
             else:
                 st.info("Modèles 2020-2025 non disponibles. Vérifiez que les fichiers .pkl sont dans models/France_models/")
