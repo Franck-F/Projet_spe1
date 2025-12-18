@@ -2,6 +2,7 @@
 
 ![alt text](image.png)
 **Dashboard** : [prix-electricite-france-danemark](https://prix-electricite-france-danemark.streamlit.app/)
+---
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python&logoColor=white)
 ![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=Streamlit&logoColor=white)
 ![Scikit-Learn](https://img.shields.io/badge/scikit--learn-%23F7931E.svg?style=for-the-badge&logo=scikit-learn&logoColor=white)
