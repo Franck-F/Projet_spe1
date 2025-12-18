@@ -253,48 +253,13 @@ b
 l
 e
 _
-g
-e
-n
-e
-r
-a
-t
-i
-o
-n
-t
-t
-o
-t
-a
-l
-_
-g
-e
-n
-e
-r
-a
-t
-i
-o
-n
-t
-renewable_ratio 
-t
- = 
-total_generation 
-t
+generationt_total/generation(t)
+renewable_ratio(t) = total_generation(t)
  
-renewable_generation 
-t
- 
- .
+renewable_generation(t).
 Mesure la pénétration instantanée des ENR dans le mix.​""",
 
-    'nuclear': """Production électrique d'origine nucléaire à l'instant 
-t
+    'nuclear': """Production électrique d'origine nucléaire à l'instant (t)
 t.
 Source pilotable et peu émissive, clé pour le niveau de prix en France.​""",
 
@@ -303,55 +268,8 @@ Source pilotable et peu émissive, clé pour le niveau de prix en France.​""",
 Sert à encoder des régimes de fonctionnement (période de forte dispo vs maintenance).​""",
 
     'residual_load': """Charge résiduelle : demande totale moins génération renouvelable variable, typiquement
-r
-e
-s
-i
-d
-u
-a
-l
-_
-l
-o
-a
-d
-t
-=
-l
-o
-a
-d
-t
-−
-r
-e
-n
-e
-w
-a
-b
-l
-e
-_
-g
-e
-n
-e
-r
-a
-t
-i
-o
-n
-t
-residual_load 
-t
- =load 
-t
- −renewable_generation 
-t
- .
+residual_load(t)=load(t)−renewable_generation(t)
+residual_load(t) =load(t) −renewable_generation(t) .
 Mesure la demande à couvrir par les moyens pilotables (nucléaire, thermique, stockage) et est fortement liée aux prix de marché.​""",
 
     'hydro_pumped': """Puissance liée aux stations de pompage-turbinage (pumped hydro) à l'instant t

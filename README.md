@@ -1,6 +1,7 @@
 # ⚡ Prédiction & Analyse du Prix de l'Électricité en Europe
 
 ![alt text](image.png)
+**Dashboard** : [prix-electricite-france-danemark](https://prix-electricite-france-danemark.streamlit.app/)
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python&logoColor=white)
 ![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=Streamlit&logoColor=white)
 ![Scikit-Learn](https://img.shields.io/badge/scikit--learn-%23F7931E.svg?style=for-the-badge&logo=scikit-learn&logoColor=white)
@@ -10,7 +11,7 @@
 
 ---
 
-## 📖 À propos du projet
+## À propos du projet
 
 Ce projet vise à **prédire et analyser les prix "day-ahead" de l'électricité en Europe** avec un focus sur **la France et le Danemark** sur la période critique **2020-2025**. Cette période inclut des dynamiques de marché complexes : stabilité initiale, choc de la crise COVID-19, et crise énergétique majeure de 2022.
 
@@ -21,9 +22,9 @@ L'objectif est triple :
 
 ---
 
-## 🚀 Fonctionnalités Clés
+## Fonctionnalités Clés
 
-### 📊 Dashboard Interactif (Streamlit)
+### Dashboard Interactif (Streamlit)
 
 Une application web complète pour explorer les données et les modèles, avec **3 sections principales** :
 
@@ -43,7 +44,7 @@ Une application web complète pour explorer les données et les modèles, avec *
 - **Performance Modèles** : Placeholder (modèles en cours d'entraînement)
 - **Analyse Volatilité** : Placeholder SHAP + lexique features
 
-#### ⚖️ **Comparaison France-Danemark**
+####  **Comparaison France-Danemark**
 - **Métriques Comparatives** : Prix moyens, volatilité, écarts
 - **Évolution des Prix** : Graphiques temporels superposés
 - **Mix Énergétique** : Camemberts côte-à-côte (Nucléaire 70% vs Éolien 55%)
@@ -52,7 +53,7 @@ Une application web complète pour explorer les données et les modèles, avec *
 - **Tableau Détaillé** : 9 caractéristiques clés
 - **Insights Stratégiques** : Avantages/inconvénients de chaque modèle
 
-### 🧠 Pipeline Machine Learning
+### Pipeline Machine Learning
 
 **Feature Engineering Avancé** :
 - Variables temporelles (Saisons, Heures, Jours fériés)
@@ -66,12 +67,12 @@ Une application web complète pour explorer les données et les modèles, avec *
 
 ---
 
-## 📂 Structure du Projet
+## Structure du Projet
 
 ```text
 Projet_spe1/
 │
-├── 📊 dashboard/                 # Application Streamlit
+├── dashboard/                 # Application Streamlit
 │   ├── app.py                    # Point d'entrée principal
 │   ├── views/                    # Pages du dashboard
 │   │   ├── france.py            # Dashboard France (~1400 lignes)
@@ -84,7 +85,7 @@ Projet_spe1/
 │   │   └── Analyse Danemark/    # Scripts d'analyse Danemark
 │   └── asset/                    # Ressources statiques (Images, Drapeaux)
 │
-├── 📓 notebooks/                 # Labo de Data Science
+├── notebooks/                 # Labo de Data Science
 │   ├── France/                   # Modélisation Focus France
 │   │   ├── EDA_France.ipynb                    # Exploration & Nettoyage
 │   │   ├── France_2020_2025_Features.ipynb     # Feature Engineering
@@ -94,23 +95,23 @@ Projet_spe1/
 │       ├── EDA_Danemark_DK1 2017-2019.ipynb
 │       └── EDA_Danemark_DK2 2017-2019.ipynb
 │
-├── 🛠 src/                       # Scripts utilitaires
+├── src/                       # Scripts utilitaires
 │   └── data_downloader.py        # Script de téléchargement des données OPSD
 │
-├── 💾 data/
+├── data/
 │   ├── raw/                      # Données brutes (ENTSO-E/OPSD)
 │   │   └── time_series_60min_fr_dk_20-25_ENRICHIE_FULL.csv  # Dataset principal
 │   └── processed/                # Données nettoyées (Parquet/CSV)
 │       ├── df_features_france_2015_2017.csv
 │       └── df_features_france_2020_2025.csv
 │
-├── 📦 models/                    # Modèles ML sérialisés (.pkl)
+├── models/                    # Modèles ML sérialisés (.pkl)
 │   ├── lgbm_base_2015_2017.pkl
 │   ├── lgbm_optimized_2015_2017.pkl
 │   ├── lgbm_base_2020_2025.pkl
 │   └── lgbm_optimized_2020_2025.pkl
 │
-├── 📄 rapports/                  # Documentation & Slides
+├── rapports/                  # Documentation & Slides
 │   └── Projet1-DataBI.pdf        # Présentation du projet
 │
 └── requirements.txt              # Dépendances du projet
@@ -167,7 +168,7 @@ Si vous souhaitez régénérer les modèles :
 
 ---
 
-## 📈 Résultats et Insights
+## Résultats et Insights
 
 ### 🇫🇷 France - Modèle Nucléaire
 
@@ -212,7 +213,7 @@ Si vous souhaitez régénérer les modèles :
 - ⚠️ Volatilité importante
 - ⚠️ Intermittence (besoin d'imports)
 
-### ⚖️ Comparaison Stratégique
+### Comparaison Stratégique
 
 | Caractéristique | 🇫🇷 France | 🇩🇰 Danemark |
 |----------------|-----------|-------------|
@@ -227,7 +228,7 @@ Si vous souhaitez régénérer les modèles :
 
 ---
 
-## 👥 Auteurs
+## Auteurs
 
 - **Franck F.**
 - **Charlotte M.**
@@ -237,13 +238,12 @@ Si vous souhaitez régénérer les modèles :
 
 ---
 
-## 📄 Licence
+##  Licence
 
 MIT
 
 ---
-
-## 🔗 Ressources
+## Ressources
 
 - **Données** : [ENTSO-E Transparency Platform](https://transparency.entsoe.eu/)
 - **Open Power System Data** : [OPSD](https://open-power-system-data.org/)

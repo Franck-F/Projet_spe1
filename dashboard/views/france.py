@@ -169,7 +169,7 @@ def render_overview_tab(df_2015, df_2020):
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("### 🟢 Période 2015-2017")
+        st.markdown("### Période 2015-2017")
         if df_2015 is not None and not df_2015.empty:
             st.metric("Observations", f"{len(df_2015):,}")
             st.metric("Prix Moyen", f"{df_2015['price_day_ahead'].mean():.2f} €/MWh")
@@ -179,7 +179,7 @@ def render_overview_tab(df_2015, df_2020):
             st.warning("Données 2015-2017 non chargées")
 
     with col2:
-        st.markdown("### 🔴 Période 2020-2025")
+        st.markdown("### Période 2020-2025")
         if df_2020 is not None and not df_2020.empty:
             st.metric("Observations", f"{len(df_2020):,}")
             st.metric("Prix Moyen", f"{df_2020['price_day_ahead'].mean():.2f} €/MWh")
@@ -189,7 +189,7 @@ def render_overview_tab(df_2015, df_2020):
             st.warning("Données 2020-2025 non chargées")
 
     st.markdown("---")
-    st.markdown("### 🏆 Performance des Modèles (Résumé)")
+    st.markdown("### Performance des Modèles (Résumé)")
     
     # Données récapitulatives basées sur l'entraînement
     perf_data = {
@@ -203,14 +203,14 @@ def render_overview_tab(df_2015, df_2020):
 
 def render_shap_tab(df_2015=None, df_2020=None):
     """Tab 6: Analyse de la Volatilité (et SHAP)"""
-    st.subheader("📉 Analyse de la Volatilité et Interprétabilité")
+    st.subheader("Analyse de la Volatilité et Interprétabilité")
     
     st.markdown("""
     Cette section analyse la structure fondamentale du marché (**Merit Order**) et l'explication des prédictions (**SHAP**).
     """)
     
     # --- 1. Analyse de la Volatilité (Hockey Stick) ---
-    st.markdown("### 🏒 Courbe de Merit Order (Hockey Stick)")
+    st.markdown("### Courbe de Merit Order (Hockey Stick)")
     st.info("""
     La "courbe en crosse de hockey" illustre la sensibilité du prix à la demande (ou charge résiduelle).
     *   **Zone plate** : Offre abondante (nucléaire, renouvelables), prix bas et stables.
@@ -257,7 +257,7 @@ def render_shap_tab(df_2015=None, df_2020=None):
     st.markdown("---")
 
     # --- 2. Analyse SHAP ---
-    st.subheader("🔍 Interprétabilité du Modèle (SHAP)")
+    st.subheader("Interprétabilité du Modèle (SHAP)")
     st.markdown("Analyse des drivers de prix sur la période récente (2020-2025).")
     
     # ... Rest of existing SHAP logic ...
@@ -372,7 +372,7 @@ def render_shap_tab(df_2015=None, df_2020=None):
                 st.plotly_chart(fig_shap, use_container_width=True, key="shap_importance_plot_france")
             
             with col_lexique:
-                st.markdown("### 📖 Lexique Features")
+                st.markdown("### Lexique Features")
                 st.caption("Définitions des variables :")
                 
                 # Récupérer les features affichées
@@ -393,13 +393,13 @@ def render_shap_tab(df_2015=None, df_2020=None):
                     # Nettoyage du nom pour affichage
                     feat_display = feat.replace("price_day_ahead", "Prix").replace("_", " ").title()
                     
-                    with st.expander(f"📌 {feat_display}"):
+                    with st.expander(f" {feat_display}"):
                         st.markdown(desc)
 
             
             # 5. Interprétation textuelle simple
             top_3 = df_shap_viz.sort_values(by='Importance', ascending=False).head(3)['Feature'].tolist()
-            st.info(f"💡 Les 3 facteurs les plus influents sur cette période sont : **{', '.join(top_3)}**.")
+            st.info(f"Les 3 facteurs les plus influents sur cette période sont : **{', '.join(top_3)}**.")
             
         except Exception as e:
             st.error(f"Erreur lors du calcul SHAP: {str(e)}")
@@ -419,7 +419,7 @@ def render_eda_tab(df_2020):
         return
     
     # Section 1: Distribution du Prix
-    st.markdown("### 📊 Distribution du Prix")
+    st.markdown("###  Distribution du Prix")
     
     col1, col2 = st.columns(2)
     
@@ -430,7 +430,7 @@ def render_eda_tab(df_2020):
         fig_hist.update_traces(marker_color='#EF553B')
         fig_hist.update_layout(xaxis_title='Prix (€/MWh)', yaxis_title='Fréquence', template='plotly_dark')
         st.plotly_chart(fig_hist, use_container_width=True)
-        st.caption("📝 Distribution asymétrique avec queue épaisse à droite (pics 2022).")
+        st.caption("Distribution asymétrique avec queue épaisse à droite (pics 2022).")
     
     with col2:
         # Boxplot par année
@@ -441,10 +441,10 @@ def render_eda_tab(df_2020):
         fig_box.update_traces(marker_color='#EF553B')
         fig_box.update_layout(template='plotly_dark')
         st.plotly_chart(fig_box, use_container_width=True)
-        st.caption("📝 2022 = année exceptionnelle avec des prix > 500 €/MWh.")
+        st.caption("2022 = année exceptionnelle avec des prix > 500 €/MWh.")
     
     # Section 1.5: Détection des Outliers
-    st.markdown("### 🔍 Détection des Outliers")
+    st.markdown("### Détection des Outliers")
     
     # Charger le dataset raw pour l'analyse des outliers
     try:
@@ -544,7 +544,7 @@ def render_eda_tab(df_2020):
             )
             
             st.plotly_chart(fig_outliers, use_container_width=True)
-            st.info("💡 **Interprétation** : Ce graphique identifie les prix extrêmes (au-delà du 95e percentile) qui correspondent à des périodes de forte tension sur le marché. **Important** : les outliers sont calculés sur l'ensemble du dataset (2020-2025), donc ils reflètent les valeurs extrêmes par rapport à la tendance générale de toute la période. Les outliers sont principalement concentrés en 2022 lors de la crise énergétique européenne.")
+            st.info("**Interprétation** : Ce graphique identifie les prix extrêmes (au-delà du 95e percentile) qui correspondent à des périodes de forte tension sur le marché. **Important** : les outliers sont calculés sur l'ensemble du dataset (2020-2025), donc ils reflètent les valeurs extrêmes par rapport à la tendance générale de toute la période. Les outliers sont principalement concentrés en 2022 lors de la crise énergétique européenne.")
             
             # Analyse temporelle des outliers
             if n_outliers > 0:
@@ -553,7 +553,7 @@ def render_eda_tab(df_2020):
                 col_x, col_y = st.columns(2)
                 
                 with col_x:
-                    st.markdown("**📅 Répartition des outliers par année**")
+                    st.markdown("** Répartition des outliers par année**")
                     outliers_summary = pd.DataFrame({
                         'Année': outliers_by_year.index,
                         'Nombre': outliers_by_year.values,
@@ -562,7 +562,7 @@ def render_eda_tab(df_2020):
                     st.dataframe(outliers_summary, use_container_width=True)
                 
                 with col_y:
-                    st.markdown("**💡 Insights**")
+                    st.markdown("** Insights**")
                     max_year = outliers_by_year.idxmax()
                     max_count = outliers_by_year.max()
                     st.info(f"""
@@ -572,7 +572,7 @@ def render_eda_tab(df_2020):
                     - Crise énergétique 2022 = cause principale
                     """)
             
-            st.caption("📝 Les outliers sont définis comme les prix dépassant le 95e percentile du dataset raw. Ils représentent les périodes de tension extrême sur le marché.")
+            st.caption(" Les outliers sont définis comme les prix dépassant le 95e percentile du dataset raw. Ils représentent les périodes de tension extrême sur le marché.")
         else:
             st.warning(f"Colonne de prix introuvable dans le dataset raw.")
     
@@ -584,7 +584,7 @@ def render_eda_tab(df_2020):
 
     
     # Section 2: Évolution Temporelle
-    st.markdown("### 📈 Évolution Temporelle")
+    st.markdown("### Évolution Temporelle")
     
     # Prix journalier
     price_series = pd.to_numeric(df_2020[price_col], errors='coerce')
@@ -593,8 +593,8 @@ def render_eda_tab(df_2020):
     fig_line.update_traces(line_color='#EF553B')
     fig_line.update_layout(xaxis_title='Date', yaxis_title='Prix (€/MWh)')
     st.plotly_chart(fig_line, use_container_width=True)
-    st.info("💡 **Interprétation** : Cette courbe montre l'évolution quotidienne du prix moyen. On observe une forte volatilité en 2022 avec des pics dépassant 400 €/MWh, suivie d'une stabilisation progressive vers des niveaux plus normaux en 2023-2024.")
-    st.caption("📝 Pic de crise énergétique visible mi-2022, suivi d'une normalisation progressive.")
+    st.info("**Interprétation** : Cette courbe montre l'évolution quotidienne du prix moyen. On observe une forte volatilité en 2022 avec des pics dépassant 400 €/MWh, suivie d'une stabilisation progressive vers des niveaux plus normaux en 2023-2024.")
+    st.caption("Pic de crise énergétique visible mi-2022, suivi d'une normalisation progressive.")
     
     # Prix moyen annuel avec variation
     if 'year' in df_2020.columns:
@@ -634,10 +634,10 @@ def render_eda_tab(df_2020):
             template='plotly_dark'
         )
         st.plotly_chart(fig_annual, use_container_width=True)
-        st.info("💡 **Interprétation** : Les variations annuelles révèlent l'impact de la crise énergétique. 2022 montre une explosion des prix moyens par rapport à 2021, tandis que les années suivantes affichent une décrue progressive.")
+        st.info(" **Interprétation** : Les variations annuelles révèlent l'impact de la crise énergétique. 2022 montre une explosion des prix moyens par rapport à 2021, tandis que les années suivantes affichent une décrue progressive.")
     
     # Section 3: Saisonnalité
-    st.markdown("### 🌍 Saisonnalité")
+    st.markdown("### Saisonnalité")
     
     col1, col2 = st.columns(2)
     
@@ -656,7 +656,7 @@ def render_eda_tab(df_2020):
                               })
             fig_season.update_layout(showlegend=False, xaxis_title="Saison", yaxis_title="Prix (€/MWh)")
             st.plotly_chart(fig_season, use_container_width=True)
-            st.caption("📝 L'hiver présente généralement des prix plus élevés en raison de la demande accrue en chauffage, tandis que l'été affiche des prix plus bas grâce à la production solaire.")
+            st.caption("L'hiver présente généralement des prix plus élevés en raison de la demande accrue en chauffage, tandis que l'été affiche des prix plus bas grâce à la production solaire.")
     
     with col2:
         # Prix par jour de la semaine
@@ -675,7 +675,7 @@ def render_eda_tab(df_2020):
                 template='plotly_dark'
             )
             st.plotly_chart(fig_weekly, use_container_width=True)
-            st.caption("📝 Les jours ouvrés (lundi-vendredi) affichent des prix moyens plus élevés que les week-ends, reflétant l'activité industrielle et commerciale.")
+            st.caption("Les jours ouvrés (lundi-vendredi) affichent des prix moyens plus élevés que les week-ends, reflétant l'activité industrielle et commerciale.")
     
     # Profil horaire
     if 'hour' in df_2020.columns and 'is_weekend' in df_2020.columns:
@@ -688,10 +688,10 @@ def render_eda_tab(df_2020):
         fig_hourly.add_trace(go.Scatter(x=hourly_weekend.index, y=hourly_weekend, name='Weekend', line=dict(width=3)))
         fig_hourly.update_layout(title="<b>Profil Horaire</b>", xaxis_title='Heure', yaxis_title='Prix Moyen (€/MWh)', template='plotly_dark')
         st.plotly_chart(fig_hourly, use_container_width=True)
-        st.caption("📝 Le profil horaire montre deux pics de prix : un le matin (7h-9h) et un le soir (18h-20h), correspondant aux heures de pointe de consommation. Le week-end présente un profil plus plat.")
+        st.caption("Le profil horaire montre deux pics de prix : un le matin (7h-9h) et un le soir (18h-20h), correspondant aux heures de pointe de consommation. Le week-end présente un profil plus plat.")
     
     # Section 4: Prix vs Load
-    st.markdown("### ⚡ Prix vs Consommation")
+    st.markdown("### Prix vs Consommation")
     
     if 'load' in df_2020.columns:
         df_trend = df_2020.copy()
@@ -712,12 +712,12 @@ def render_eda_tab(df_2020):
             template='plotly_dark'
         )
         st.plotly_chart(fig_load, use_container_width=True)
-        st.info("💡 **Interprétation** : Cette visualisation montre la relation entre le niveau de consommation et le prix moyen. On observe généralement une corrélation positive : plus la demande est élevée, plus le prix augmente, car il faut activer des moyens de production plus coûteux.")
+        st.info("**Interprétation** : Cette visualisation montre la relation entre le niveau de consommation et le prix moyen. On observe généralement une corrélation positive : plus la demande est élevée, plus le prix augmente, car il faut activer des moyens de production plus coûteux.")
 
 
 def render_energy_mix_tab(df_2020):
     """Tab 3: Mix Énergétique"""
-    st.subheader("⚡ Mix Énergétique France (2020-2025)")
+    st.subheader("Mix Énergétique France (2020-2025)")
     
     if df_2020 is None or df_2020.empty:
         st.warning("Dataset 2020-2025 non disponible.")
@@ -750,7 +750,7 @@ def render_energy_mix_tab(df_2020):
     energy_mix = dict(sorted(energy_mix.items(), key=lambda x: x[1], reverse=True))
     
     # Section 1: Répartition Totale
-    st.markdown("### 🥧 Répartition de la Production Totale")
+    st.markdown("### Répartition de la Production Totale")
     
     col1, col2 = st.columns([2, 1])
     
@@ -769,7 +769,7 @@ def render_energy_mix_tab(df_2020):
             marker=dict(line=dict(color='white', width=2))
         )
         st.plotly_chart(fig_pie, use_container_width=True)
-        st.info("💡 **Interprétation** : Ce graphique montre la répartition de la production électrique par source d'énergie sur la période 2020-2025. Le nucléaire domine largement le mix énergétique français, suivi de l'hydraulique et des énergies renouvelables variables (éolien, solaire).")
+        st.info("**Interprétation** : Ce graphique montre la répartition de la production électrique par source d'énergie sur la période 2020-2025. Le nucléaire domine largement le mix énergétique français, suivi de l'hydraulique et des énergies renouvelables variables (éolien, solaire).")
     
     with col2:
         # Tableau récapitulatif
@@ -782,10 +782,10 @@ def render_energy_mix_tab(df_2020):
         
         st.dataframe(mix_df, use_container_width=True)
         st.metric("Production Totale", f"{mix_df['Production (TWh)'].sum():.2f} TWh")
-        st.caption("📝 Le tableau récapitulatif présente la production cumulée par source en MWh et TWh, ainsi que la part relative de chaque source dans le mix total.")
+        st.caption("Le tableau récapitulatif présente la production cumulée par source en MWh et TWh, ainsi que la part relative de chaque source dans le mix total.")
     
     # Section 2: Évolution Temporelle
-    st.markdown("### 📈 Évolution Mensuelle du Mix Énergétique")
+    st.markdown("### Évolution Mensuelle du Mix Énergétique")
     
     df_monthly = df_2020.copy()
     df_monthly['year_month'] = df_monthly.index.to_period('M')
@@ -832,11 +832,11 @@ def render_energy_mix_tab(df_2020):
             hovermode='x unified'
         )
         st.plotly_chart(fig_area, use_container_width=True)
-        st.info("💡 **Interprétation** : Ce graphique en aires empilées montre l'évolution mensuelle de la production par source d'énergie. On observe la stabilité du nucléaire (base), la variabilité saisonnière de l'hydraulique, et la montée en puissance progressive de l'éolien et du solaire au fil des années.")
+        st.info("**Interprétation** : Ce graphique en aires empilées montre l'évolution mensuelle de la production par source d'énergie. On observe la stabilité du nucléaire (base), la variabilité saisonnière de l'hydraulique, et la montée en puissance progressive de l'éolien et du solaire au fil des années.")
     
     # Section 3: Prix vs Production Nucléaire
     if 'nuclear' in df_2020.columns and 'price_day_ahead' in df_2020.columns:
-        st.markdown("### ☢️ Prix vs Production Nucléaire")
+        st.markdown("### Prix vs Production Nucléaire")
         
         df_nuclear = df_2020.copy()
         df_nuclear['nuclear_bin'] = (df_nuclear['nuclear'] // 2000 * 2000).astype(int)
@@ -850,12 +850,12 @@ def render_energy_mix_tab(df_2020):
             labels={'nuclear_bin': 'Production Nucléaire (MW)', 'price_day_ahead': 'Prix Moyen (€/MWh)'}
         )
         st.plotly_chart(fig_nuclear, use_container_width=True)
-        st.info("💡 **Interprétation** : Cette visualisation montre la relation inverse entre production nucléaire et prix. Lorsque le parc nucléaire fonctionne à pleine capacité, l'offre d'électricité bon marché est abondante, ce qui fait baisser les prix. À l'inverse, une production nucléaire réduite (maintenance, arrêts) force le recours à des moyens plus coûteux.")
+        st.info("**Interprétation** : Cette visualisation montre la relation inverse entre production nucléaire et prix. Lorsque le parc nucléaire fonctionne à pleine capacité, l'offre d'électricité bon marché est abondante, ce qui fait baisser les prix. À l'inverse, une production nucléaire réduite (maintenance, arrêts) force le recours à des moyens plus coûteux.")
 
 
 def render_correlations_tab(df_2020):
     """Tab 4: Corrélations"""
-    st.subheader("🔗 Analyse des Corrélations")
+    st.subheader(" Analyse des Corrélations")
     
     if df_2020 is None or df_2020.empty:
         st.warning("Dataset 2020-2025 non disponible.")
@@ -872,7 +872,7 @@ def render_correlations_tab(df_2020):
     corr_matrix = df_2020[cols_for_corr].corr()
     
     # Section 1: Heatmap Complète
-    st.markdown("### 🌡️ Heatmap de Corrélation Complète")
+    st.markdown("### Heatmap de Corrélation Complète")
     
     fig_corr = px.imshow(
         corr_matrix,
@@ -883,32 +883,32 @@ def render_correlations_tab(df_2020):
     )
     fig_corr.update_layout(height=1000, width=1200, template='plotly_dark')
     st.plotly_chart(fig_corr, use_container_width=True)
-    st.info("💡 **Interprétation** : Cette heatmap présente les corrélations de Pearson entre toutes les variables numériques du dataset. Les valeurs proches de +1 (rouge) indiquent une forte corrélation positive, les valeurs proches de -1 (bleu) une forte corrélation négative, et les valeurs proches de 0 (blanc) une absence de corrélation linéaire.")
+    st.info("**Interprétation** : Cette heatmap présente les corrélations de Pearson entre toutes les variables numériques du dataset. Les valeurs proches de +1 (rouge) indiquent une forte corrélation positive, les valeurs proches de -1 (bleu) une forte corrélation négative, et les valeurs proches de 0 (blanc) une absence de corrélation linéaire.")
     
     # Section 2: Top Corrélations avec le Prix
     if 'price_day_ahead' in corr_matrix.columns:
-        st.markdown("### 📊 Top Corrélations avec le Prix")
+        st.markdown("### Top Corrélations avec le Prix")
         
         price_corr = corr_matrix['price_day_ahead'].drop('price_day_ahead').sort_values(ascending=False)
         
         col1, col2 = st.columns(2)
         
         with col1:
-            st.markdown("#### ✅ Top 10 Corrélations Positives")
+            st.markdown("####  Top 10 Corrélations Positives")
             top_pos = price_corr.head(10).reset_index()
             top_pos.columns = ['Feature', 'Corrélation']
             st.dataframe(top_pos, use_container_width=True)
         
         with col2:
-            st.markdown("#### ❌ Top 10 Corrélations Négatives")
+            st.markdown("####  Top 10 Corrélations Négatives")
             top_neg = price_corr.tail(10).reset_index()
             top_neg.columns = ['Feature', 'Corrélation']
             st.dataframe(top_neg, use_container_width=True)
         
-        st.caption("📝 **Corrélations positives** : variables qui augmentent avec le prix (ex: demande, périodes de pointe). **Corrélations négatives** : variables qui diminuent quand le prix augmente (ex: production nucléaire, ENR abondantes).")
+        st.caption(" **Corrélations positives** : variables qui augmentent avec le prix (ex: demande, périodes de pointe). **Corrélations négatives** : variables qui diminuent quand le prix augmente (ex: production nucléaire, ENR abondantes).")
     
     # Section 3: Heatmap Focalisée
-    st.markdown("### 🎯 Corrélation Focalisée (Load, Prix, Production)")
+    st.markdown("###  Corrélation Focalisée (Load, Prix, Production)")
     
     corr_vars = ['load', 'price_day_ahead', 'nuclear', 'gas', 'coal', 'hydro', 'oil', 'biomass', 'solar', 'wind']
     corr_vars = [c for c in corr_vars if c in df_2020.columns]
@@ -926,12 +926,12 @@ def render_correlations_tab(df_2020):
         )
         fig_focus.update_layout(height=600, width=800, template='plotly_dark')
         st.plotly_chart(fig_focus, use_container_width=True)
-        st.info("💡 **Interprétation** : Cette heatmap focalisée met en évidence les relations entre consommation, prix et sources de production. On observe notamment la corrélation négative entre production nucléaire et prix (plus de nucléaire = prix plus bas), et la corrélation positive entre demande (load) et prix (plus de demande = prix plus élevés).")
+        st.info(" **Interprétation** : Cette heatmap focalisée met en évidence les relations entre consommation, prix et sources de production. On observe notamment la corrélation négative entre production nucléaire et prix (plus de nucléaire = prix plus bas), et la corrélation positive entre demande (load) et prix (plus de demande = prix plus élevés).")
 
 
 def render_models_tab(df_2015, df_2020):
     """Tab 5: Performance des Modèles"""
-    st.subheader("🤖 Performance des Modèles Prédictifs")
+    st.subheader(" Performance des Modèles Prédictifs")
     
     # Charger les métadonnées des modèles
     from utils.model_loader import get_france_models_info, format_metric
@@ -948,7 +948,7 @@ def render_models_tab(df_2015, df_2020):
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("### 📊 Résultats 2015-2017")
+        st.markdown("###  Résultats 2015-2017")
         st.caption("*Modèles sauvegardés et chargés depuis models/*")
         
         # Récupérer les métriques réelles
@@ -989,12 +989,12 @@ def render_models_tab(df_2015, df_2020):
         if mae_base != "N/A" and mae_opt != "N/A":
             try:
                 improvement = ((float(mae_base) - float(mae_opt)) / float(mae_base)) * 100
-                st.success(f"✅ Optimisation : MAE réduite de {improvement:.0f}% ({mae_base} → {mae_opt})")
+                st.success(f" Optimisation : MAE réduite de {improvement:.0f}% ({mae_base} → {mae_opt})")
             except:
-                st.success(f"✅ LightGBM Optimisé : MAE {mae_opt}, R² {r2_opt}")
+                st.success(f" LightGBM Optimisé : MAE {mae_opt}, R² {r2_opt}")
     
     with col2:
-        st.markdown("### 📊 Résultats 2020-2025")
+        st.markdown("###  Résultats 2020-2025")
         st.caption("*Performance calculée en TEMP RÉEL sur les 60 derniers jours*")
         
         # Initialisation des variables pour la visualisation plus bas
@@ -1088,11 +1088,11 @@ def render_models_tab(df_2015, df_2020):
         st.table(pd.DataFrame(perf_2020))
         
         if mae_opt != "N/A" and r2_opt != "N/A":
-            st.success(f"✅ LightGBM Optimisé (Live): MAE {mae_opt}, R² {r2_opt}")
+            st.success(f"LightGBM Optimisé : MAE {mae_opt}, R² {r2_opt}")
     
     st.markdown("---")
     st.info("""
-    💡 **Interprétation des Métriques** :
+    **Interprétation des Métriques** :
     - **MAE (Mean Absolute Error)** : Erreur moyenne en €/MWh. Plus elle est faible, plus le modèle est précis.
     - **RMSE (Root Mean Squared Error)** : Pénalise davantage les grandes erreurs que la MAE.
     - **R² (Coefficient de détermination)** : Mesure la qualité de l'ajustement (1.0 = parfait, 0.0 = modèle inutile).
@@ -1106,7 +1106,7 @@ def render_models_tab(df_2015, df_2020):
     """)
     
     # Hyperparamètres optimaux
-    st.markdown("### ⚙️ Hyperparamètres Optimaux")
+    st.markdown("### Hyperparamètres Optimaux")
     
     # Charger les hyperparamètres réels depuis les métadonnées
     col_a, col_b = st.columns(2)
@@ -1119,7 +1119,7 @@ def render_models_tab(df_2015, df_2020):
                 "Valeur": [str(v) for v in opt_2015['best_params'].values()]
             })
             st.dataframe(params_df, use_container_width=True)
-            st.caption("📝 Ces hyperparamètres ont été optimisés via GridSearchCV pour maximiser le R² sur le jeu de validation.")
+            st.caption("Ces hyperparamètres ont été optimisés via GridSearchCV pour maximiser le R² sur le jeu de validation.")
         else:
             st.info("Hyperparamètres non disponibles")
     
@@ -1144,7 +1144,7 @@ def render_models_tab(df_2015, df_2020):
     
     # Visualisations des Prédictions
     st.markdown("---")
-    st.markdown("### 📈 Visualisations des Prédictions")
+    st.markdown("### Visualisations des Prédictions")
     
     # Charger les modèles et générer de vraies prédictions
     from utils.model_loader import load_model
@@ -1265,10 +1265,10 @@ def render_models_tab(df_2015, df_2020):
                     )
                     
                     st.plotly_chart(fig_pred_2015, use_container_width=True)
-                    st.info("💡 **Interprétation** : Ce graphique compare les prédictions des deux modèles LightGBM aux prix réels sur les 30 derniers jours de la période 2015-2017. Le modèle optimisé (vert) suit de très près la courbe réelle (blanc), démontrant une excellente capacité de prédiction sur un marché stable.")
+                    st.info(" **Interprétation** : Ce graphique compare les prédictions des deux modèles LightGBM aux prix réels sur les 30 derniers jours de la période 2015-2017. Le modèle optimisé (vert) suit de très près la courbe réelle (blanc), démontrant une excellente capacité de prédiction sur un marché stable.")
                     
                     st.caption(f"""
-                    📝 **Différences entre les modèles 2015-2017** :
+                     **Différences entre les modèles 2015-2017** :
                     
                     **LightGBM Base**: Modèle de référence incluant des indicateurs de tendance court-terme (moyennes mobiles 24h). 
                     Il sert de benchmark pour évaluer l'apport des fondamentaux de marché face à la simple inertie des prix.
@@ -1422,7 +1422,7 @@ def render_models_tab(df_2015, df_2020):
                         **layout_config
                     )
                     st.plotly_chart(fig_compare, use_container_width=True)
-                    st.info("💡 **Interprétation** : Ce graphique compare les prédictions des modèles LightGBM aux prix réels sur les 60 derniers jours de la période 2020-2025. Même face à la volatilité accrue de cette période (incluant potentiellement des résidus de la crise 2022), le modèle optimisé maintient une bonne précision.")
+                    st.info(" **Interprétation** : Ce graphique compare les prédictions des modèles LightGBM aux prix réels sur les 60 derniers jours de la période 2020-2025. Même face à la volatilité accrue de cette période (incluant potentiellement des résidus de la crise 2022), le modèle optimisé maintient une bonne précision.")
                     
                     # --- VIZ 2: Résidus ---
                     from plotly.subplots import make_subplots
@@ -1444,14 +1444,14 @@ def render_models_tab(df_2015, df_2020):
                     if has_res:
                         fig_res.update_layout(height=400, title_text="Analyse des Résidus (Live)", showlegend=False, template='plotly_dark')
                         st.plotly_chart(fig_res, use_container_width=True)
-                        st.caption("📝 **Analyse des résidus** : Les résidus (différence entre prédiction et réalité) permettent d'évaluer la qualité du modèle. Des résidus centrés autour de zéro et sans pattern visible indiquent un bon modèle. Des résidus importants révèlent des événements que le modèle n'a pas anticipés.")
+                        st.caption(" **Analyse des résidus** : Les résidus (différence entre prédiction et réalité) permettent d'évaluer la qualité du modèle. Des résidus centrés autour de zéro et sans pattern visible indiquent un bon modèle. Des résidus importants révèlent des événements que le modèle n'a pas anticipés.")
 
                 else:
                     st.warning("Données live (y_true) non disponibles pour la visualisation.")
 
                     
                     st.caption("""
-                    📝 **Différences entre les modèles 2020-2025** :
+                    **Différences entre les modèles 2020-2025** :
                     
                     **LightGBM Base**: Modèle baseline utilisant les **mêmes features** que le script d'entraînement (incluant historiques de prix et lags). 
                     Il sert de référence (MAE faible attendue ~1-2 €/MWh en test) pour valider que le pipeline de données est cohérent.

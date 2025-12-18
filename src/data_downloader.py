@@ -75,7 +75,7 @@ def download_data(file_type="hourly", force_download=False):
     # Construction de l'URL complète
     url = f"{OPSD_BASE_URL}/{filename}"
     
-    print(f"📥 Téléchargement de {filename} en cours...")
+    print(f"Téléchargement de {filename} en cours...")
     print(f"   URL : {url}")
     print("   (Cela peut prendre quelques minutes selon votre connexion)")
     
@@ -103,11 +103,11 @@ def download_data(file_type="hourly", force_download=False):
                               f"({progress:.1f}%)")
         
         file_size_mb = local_path.stat().st_size / (1024**2)
-        print(f"✓ Téléchargement terminé : {file_size_mb:.2f} MB")
+        print(f" Téléchargement terminé : {file_size_mb:.2f} MB")
         return local_path
         
     except requests.exceptions.RequestException as e:
-        print(f"❌ Erreur lors du téléchargement : {e}")
+        print(f"Erreur lors du téléchargement : {e}")
         print("\nSolutions possibles :")
         print("1. Vérifiez votre connexion internet")
         print("2. Téléchargez manuellement depuis : https://data.open-power-system-data.org/time_series/")
@@ -130,7 +130,7 @@ def load_data(file_path, nrows=None):
     Pandas va automatiquement détecter et convertir les colonnes en
     types appropriés (nombres, dates, etc.).
     """
-    print(f"\n📊 Chargement des données depuis {file_path.name}...")
+    print(f"\nChargement des données depuis {file_path.name}...")
     
     if nrows:
         print(f"   Mode test : chargement de {nrows} lignes seulement")
@@ -156,7 +156,7 @@ def load_data(file_path, nrows=None):
         return df
         
     except Exception as e:
-        print(f"❌ Erreur lors du chargement : {e}")
+        print(f"Erreur lors du chargement : {e}")
         return None
 
 
@@ -171,7 +171,7 @@ def get_available_prices(df):
     # Filtrage des colonnes contenant 'price_day_ahead'
     price_columns = [col for col in df.columns if 'price_day_ahead' in col.lower()]
     
-    print("\n💰 Prix day-ahead disponibles :")
+    print("\nPrix day-ahead disponibles :")
     print(f"   Nombre de zones avec prix : {len(price_columns)}")
     
     # Analyse de la disponibilité des données pour chaque zone
@@ -204,25 +204,25 @@ def display_data_summary(df):
     comme lire la table des matières d'un livre avant de le lire.
     """
     print("\n" + "="*70)
-    print("📋 RÉSUMÉ DES DONNÉES CHARGÉES")
+    print("RÉSUMÉ DES DONNÉES CHARGÉES")
     print("="*70)
     
-    print(f"\n🗓️  Informations temporelles :")
+    print(f"\nInformations temporelles :")
     print(f"   - Date de début : {df.index.min()}")
     print(f"   - Date de fin : {df.index.max()}")
     print(f"   - Durée totale : {(df.index.max() - df.index.min()).days} jours")
     
-    print(f"\n📊 Structure des données :")
+    print(f"\nStructure des données :")
     print(f"   - Dimensions : {df.shape[0]:,} lignes × {df.shape[1]:,} colonnes")
     print(f"   - Mémoire : {df.memory_usage(deep=True).sum() / (1024**2):.2f} MB")
     
-    print(f"\n🔍 Aperçu des types de colonnes :")
+    print(f"\nAperçu des types de colonnes :")
     # Grouper les colonnes par type de données
     type_counts = df.dtypes.value_counts()
     for dtype, count in type_counts.items():
         print(f"   - {dtype} : {count} colonnes")
     
-    print(f"\n❓ Valeurs manquantes globales :")
+    print(f"\nValeurs manquantes globales :")
     missing_percentage = (df.isnull().sum().sum() / (df.shape[0] * df.shape[1])) * 100
     print(f"   - Pourcentage total : {missing_percentage:.2f}%")
     
@@ -248,7 +248,7 @@ def main():
     file_path = download_data(file_type="hourly", force_download=False)
     
     if file_path is None:
-        print("\n⚠️  Impossible de continuer sans les données")
+        print("\n Impossible de continuer sans les données")
         return None
     
     # Étape 3 : Charger les données
@@ -256,7 +256,7 @@ def main():
     df = load_data(file_path, nrows=None)  # Changez en nrows=10000 pour test rapide
     
     if df is None:
-        print("\n⚠️  Échec du chargement des données")
+        print("\nÉchec du chargement des données")
         return None
     
     # Étape 4 : Analyser les prix disponibles
@@ -267,11 +267,11 @@ def main():
     display_data_summary(df)
     
     # Étape 6 : Afficher un aperçu des premières lignes
-    print("\n👀 Aperçu des 5 premières lignes (colonnes de prix uniquement) :")
+    print("\n Aperçu des 5 premières lignes (colonnes de prix uniquement) :")
     print(df[price_columns].head())
     
-    print("\n✅ Chargement terminé avec succès !")
-    print(f"\n💡 Le DataFrame est maintenant disponible dans la variable 'df'")
+    print("\nChargement terminé avec succès !")
+    print(f"\nLe DataFrame est maintenant disponible dans la variable 'df'")
     print(f"   Utilisez df.head() pour voir les premières lignes")
     print(f"   Utilisez df.info() pour plus de détails")
     

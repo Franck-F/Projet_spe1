@@ -126,3 +126,44 @@ def format_metric(value, decimals=2):
         return f"{float(value):.{decimals}f}"
     except (ValueError, TypeError):
         return "N/A"
+
+
+@st.cache_resource
+def load_denmark_model(model_name):
+    """
+    Charge un modèle Danemark sauvegardé
+    
+    Args:
+        model_name: Nom du modèle ('DK1_baseline', 'DK1_optimized', 'DK2_baseline', 'DK2_optimized')
+    
+    Returns:
+        Modèle chargé ou None si erreur
+    """
+    model_mapping = {
+        'DK1_baseline': 'model_DK1_LightGBM_baseline.pkl',
+        'DK1_optimized': 'model_DK1_LightGBM_optimise.pkl',
+        'DK2_baseline': 'model_DK2_LightGBM_baseline.pkl',
+        'DK2_optimized': 'model_DK2_LightGBM_optimise.pkl'
+    }
+    
+    filename = model_mapping.get(model_name)
+    if not filename:
+        return None
+    
+    possible_paths = [
+        Path("../models/Danemark_models"),
+        Path("models/Danemark_models"),
+        Path("../../models/Danemark_models")
+    ]
+    
+    for base_path in possible_paths:
+        model_path = base_path / filename
+        if model_path.exists():
+            try:
+                model = joblib.load(model_path)
+                return model
+            except Exception as e:
+                st.warning(f"Erreur lors du chargement de {model_path}: {e}")
+                return None
+    
+    return None

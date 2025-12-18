@@ -8,11 +8,11 @@ import numpy as np
 def render_comparison(df):
     """Comparaison France vs Danemark"""
     
-    st.header("⚡ Comparaison France vs Danemark")
+    st.header("Comparaison France vs Danemark")
     st.caption("Analyse comparative des deux marchés électriques (2020-2025)")
     
     # Bouton pour vider le cache si les données semblent incorrectes
-    if st.button("🔄 Rafraîchir les données (vider le cache)"):
+    if st.button("Rafraîchir les données (vider le cache)"):
         st.cache_data.clear()
         st.rerun()
 
@@ -27,7 +27,7 @@ def render_comparison(df):
     has_denmark = dk1_price in df.columns and dk2_price in df.columns
     
     if not has_france or not has_denmark:
-        st.error("❌ Données insuffisantes pour la comparaison France-Danemark.")
+        st.error("Données insuffisantes pour la comparaison France-Danemark.")
         return
     
     # IMPORTANT: Filtrer sur la période commune 2020-2025 pour comparaison équitable
@@ -42,16 +42,16 @@ def render_comparison(df):
     df = df.loc[common_index]
     
     if df.empty:
-        st.warning("⚠️ Pas de données communes pour la période 2020-2025.")
+        st.warning("Pas de données communes pour la période 2020-2025.")
         return
     
-    st.info(f"📅 **Période de comparaison** : {df.index.min().strftime('%d/%m/%Y')} - {df.index.max().strftime('%d/%m/%Y')} ({len(df):,} observations)")
+    st.info(f"**Période de comparaison** : {df.index.min().strftime('%d/%m/%Y')} - {df.index.max().strftime('%d/%m/%Y')} ({len(df):,} observations)")
     
     # Créer prix moyen Danemark
     df['DK_price_avg'] = (df[dk1_price] + df[dk2_price]) / 2
     
     # Section 1: Vue d'ensemble - Métriques Clés
-    st.markdown("### 📊 Métriques Clés")
+    st.markdown("### Métriques Clés")
     
     col1, col2, col3, col4 = st.columns(4)
     
@@ -75,7 +75,7 @@ def render_comparison(df):
         st.metric("Volatilité DK", f"{dk_std:.1f} €/MWh")
     
     # Section 2: Comparaison des Prix
-    st.markdown("### 💰 Évolution des Prix")
+    st.markdown("### Évolution des Prix")
     
     # Prix hebdomadaire
     df_weekly = df[[fr_price, 'DK_price_avg']].resample('W').mean()
@@ -108,15 +108,15 @@ def render_comparison(df):
     )
     
     st.plotly_chart(fig_prices, use_container_width=True)
-    st.info("💡 **Interprétation** : Les deux marchés suivent des trajectoires similaires (crise 2022), mais le Danemark présente généralement une volatilité plus élevée en raison de sa forte dépendance à l'éolien.")
+    st.info("**Interprétation** : Les deux marchés suivent des trajectoires similaires (crise 2022), mais le Danemark présente généralement une volatilité plus élevée en raison de sa forte dépendance à l'éolien.")
     
     # Section 3: Mix Énergétique
-    st.markdown("### ⚡ Comparaison du Mix Énergétique")
+    st.markdown("### Comparaison du Mix Énergétique")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("#### 🇫🇷 France")
+        st.markdown("#### France")
         
         # Mix France (approximatif basé sur les colonnes disponibles)
         fr_mix = {
@@ -137,7 +137,7 @@ def render_comparison(df):
         fig_fr.update_traces(textposition='inside', textinfo='percent+label')
         fig_fr.update_layout(template='plotly_dark', height=400)
         st.plotly_chart(fig_fr, use_container_width=True)
-        st.caption("📝 Dominance du nucléaire (~70%), source pilotable et bas carbone.")
+        st.caption("Dominance du nucléaire (~70%), source pilotable et bas carbone.")
     
     with col2:
         st.markdown("#### 🇩🇰 Danemark")
@@ -161,10 +161,10 @@ def render_comparison(df):
         fig_dk.update_traces(textposition='inside', textinfo='percent+label')
         fig_dk.update_layout(template='plotly_dark', height=400)
         st.plotly_chart(fig_dk, use_container_width=True)
-        st.caption("📝 Champion mondial de l'éolien (~55%), forte variabilité.")
+        st.caption("Champion mondial de l'éolien (~55%), forte variabilité.")
     
     # Section 4: Distribution des Prix
-    st.markdown("### 📈 Distribution des Prix")
+    st.markdown("### Distribution des Prix")
     
     fig_dist = go.Figure()
     
@@ -194,10 +194,10 @@ def render_comparison(df):
     )
     
     st.plotly_chart(fig_dist, use_container_width=True)
-    st.caption("📝 Le Danemark présente une queue plus épaisse (prix extrêmes plus fréquents) en raison de la variabilité éolienne.")
+    st.caption("Le Danemark présente une queue plus épaisse (prix extrêmes plus fréquents) en raison de la variabilité éolienne.")
     
     # Section 5: Volatilité Comparée
-    st.markdown("### 📊 Analyse de la Volatilité")
+    st.markdown("### Analyse de la Volatilité")
     
     # Calculer volatilité mensuelle
     fr_vol = df[fr_price].resample('M').std()
@@ -229,10 +229,10 @@ def render_comparison(df):
     )
     
     st.plotly_chart(fig_vol, use_container_width=True)
-    st.info("💡 **Interprétation** : Le Danemark affiche généralement une volatilité plus élevée, particulièrement lors des périodes de faible vent (recours aux imports et moyens thermiques coûteux).")
+    st.info("**Interprétation** : Le Danemark affiche généralement une volatilité plus élevée, particulièrement lors des périodes de faible vent (recours aux imports et moyens thermiques coûteux).")
     
     # Section 6: Tableau Comparatif
-    st.markdown("### 📋 Tableau Comparatif Détaillé")
+    st.markdown("### Tableau Comparatif Détaillé")
     
     comparison_data = {
         "Caractéristique": [
@@ -273,7 +273,7 @@ def render_comparison(df):
     st.dataframe(pd.DataFrame(comparison_data), use_container_width=True)
     
     # Section 7: Insights Clés
-    st.markdown("### 💡 Insights Clés")
+    st.markdown("### Insights Clés")
     
     col1, col2 = st.columns(2)
     
@@ -298,7 +298,7 @@ def render_comparison(df):
         """)
     
     st.success("""
-    🎯 **Conclusion** : Les deux pays illustrent des stratégies énergétiques radicalement différentes mais complémentaires.
+    **Conclusion** : Les deux pays illustrent des stratégies énergétiques radicalement différentes mais complémentaires.
     La France mise sur la stabilité du nucléaire, le Danemark sur l'agilité des renouvelables.
     Leur intégration au marché européen permet de mutualiser les avantages de chaque modèle.
     """)

@@ -63,7 +63,7 @@ def download_opsd_data(file_type="hourly", force_download=False, verbose=True):
     url = f"{OPSD_BASE_URL}/{filename}"
     
     if verbose:
-        print(f"📥 Téléchargement de {filename}...")
+        print(f"Téléchargement de {filename}...")
         print(f"   Source : {url}")
         print("   (Cela peut prendre quelques minutes)")
     
@@ -103,8 +103,8 @@ def download_opsd_data(file_type="hourly", force_download=False, verbose=True):
         
     except requests.exceptions.RequestException as e:
         if verbose:
-            print(f"❌ Erreur lors du téléchargement : {e}")
-            print("\n💡 Solutions possibles :")
+            print(f"Erreur lors du téléchargement : {e}")
+            print("\nSolutions possibles :")
             print("   1. Vérifiez votre connexion internet")
             print("   2. Téléchargez manuellement depuis :")
             print("      https://data.open-power-system-data.org/time_series/")
@@ -126,7 +126,7 @@ def load_opsd_data(file_type="hourly", nrows=None, verbose=True):
         )
     
     if verbose:
-        print(f"\n📊 Chargement des données depuis {file_path.name}...")
+        print(f"\nChargement des données depuis {file_path.name}...")
         if nrows:
             print(f"   Mode test : {nrows:,} lignes seulement")
     
@@ -144,7 +144,7 @@ def load_opsd_data(file_type="hourly", nrows=None, verbose=True):
         )
         
         if verbose:
-            print(f"✓ Données chargées avec succès")
+            print(f"Données chargées avec succès")
             print(f"  Dimensions : {df.shape[0]:,} lignes × {df.shape[1]:,} colonnes")
             print(f"  Période : {df.index.min().date()} à {df.index.max().date()}")
             print(f"  Mémoire : {df.memory_usage(deep=True).sum() / (1024**2):.2f} MB")
@@ -152,7 +152,7 @@ def load_opsd_data(file_type="hourly", nrows=None, verbose=True):
         return df
         
     except Exception as e:
-        print(f"❌ Erreur lors du chargement : {e}")
+        print(f"Erreur lors du chargement : {e}")
         raise
 
 
@@ -177,7 +177,7 @@ def get_available_countries(df, verbose=True):
     countries = sorted(list(countries))
     
     if verbose:
-        print(f"\n🌍 Pays disponibles dans le dataset : {len(countries)}")
+        print(f"\nPays disponibles dans le dataset : {len(countries)}")
         # Affichage en colonnes pour meilleure lisibilité
         for i in range(0, len(countries), 10):
             print(f"   {', '.join(countries[i:i+10])}")
@@ -194,7 +194,7 @@ def get_price_columns(df, verbose=True):
     
     if len(price_cols) == 0:
         if verbose:
-            print("⚠️  Aucune colonne de prix day-ahead trouvée")
+            print("Aucune colonne de prix day-ahead trouvée")
         return pd.DataFrame()
     
     # Analyse de chaque colonne de prix
@@ -232,7 +232,7 @@ def get_price_columns(df, verbose=True):
     price_df = price_df.sort_values('Completeness_%', ascending=False)
     
     if verbose:
-        print(f"\n💰 Analyse des prix day-ahead disponibles")
+        print(f"\nAnalyse des prix day-ahead disponibles")
         print(f"   Nombre de zones avec prix : {len(price_cols)}")
         print(f"\n   Top 10 des zones les mieux couvertes :")
         print(price_df[['Zone', 'Completeness_%', 'Coverage_days']].head(10).to_string(index=False))
@@ -259,7 +259,7 @@ def save_processed_data(df, filename, verbose=True):
     
     if verbose:
         file_size_mb = filepath.stat().st_size / (1024**2)
-        print(f"✓ Données sauvegardées : {filepath}")
+        print(f"Données sauvegardées : {filepath}")
         print(f"  Dimensions : {df.shape[0]:,} × {df.shape[1]:,}")
         print(f"  Taille : {file_size_mb:.2f} MB")
     

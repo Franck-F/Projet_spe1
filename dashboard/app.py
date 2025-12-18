@@ -103,7 +103,7 @@ if df.empty:
 st.sidebar.title("Informations")
 
 # Dataset Stats
-st.sidebar.subheader("🗂️ Datasets")
+st.sidebar.subheader("### Datasets")
 
 # Période globale
 min_date = df.index.min().date()
@@ -118,7 +118,7 @@ st.sidebar.info(f"""
 
 # France
 fr_data = df[['FR_price_day_ahead']].dropna()
-st.sidebar.markdown("**🇫🇷 France**")
+st.sidebar.markdown("**France**")
 st.sidebar.caption(f"""
 - Période : 2020-2025  
 - Observations : {len(fr_data):,}  
@@ -129,7 +129,7 @@ st.sidebar.caption(f"""
 dk_data = df[['DK_1_price_day_ahead', 'DK_2_price_day_ahead']].dropna()
 if len(dk_data) > 0:
     dk_avg = (dk_data['DK_1_price_day_ahead'] + dk_data['DK_2_price_day_ahead']) / 2
-    st.sidebar.markdown("**🇩🇰 Danemark**")
+    st.sidebar.markdown("**Danemark**")
     st.sidebar.caption(f"""
     - Période : 2020-2025  
     - Observations : {len(dk_data):,}  
@@ -139,7 +139,7 @@ if len(dk_data) > 0:
 st.sidebar.markdown("---")
 
 # Project Info
-st.sidebar.subheader("👥 Auteurs")
+st.sidebar.subheader(" Auteurs")
 st.sidebar.markdown("""
 *   Franck F.
 *   Charlotte M.
@@ -149,7 +149,7 @@ st.sidebar.markdown("""
 """)
 
 st.sidebar.markdown("---")
-st.sidebar.caption("Projet DataBI - 2025")
+st.sidebar.caption("Projet Spé - DataBI - 2025")
 
 # No more specific filtering for global dataframe
 # df_filtered is now just df
