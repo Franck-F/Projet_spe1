@@ -815,17 +815,17 @@ def render_models_tab(df):
         
         with col1:
             st.markdown("#### 🇩🇰 Métriques DK1")
-            st.metric("MAE Baseline", f"{mae_dk1_opt:.2f} €/MWh")
-            st.metric("MAE Optimisé", f"{mae_dk1_base:.2f} €/MWh")
-            st.metric("RMSE Optimisé", f"{r2_dk1_opt:.2f} €/MWh")
-            st.metric("R² Optimisé", f"{rmse_dk1_opt:.3f}")
-        
-        with col2:
-            st.markdown("#### 🇩🇰 Métriques DK2")
             st.metric("MAE Baseline", f"{mae_dk2_opt:.2f} €/MWh")
             st.metric("MAE Optimisé", f"{mae_dk2_base:.2f} €/MWh")
             st.metric("RMSE Optimisé", f"{r2_dk2_opt:.2f} €/MWh")
             st.metric("R² Optimisé", f"{rmse_dk2_opt:.3f}")
+        
+        with col2:
+            st.markdown("#### 🇩🇰 Métriques DK2")
+            st.metric("MAE Baseline", f"{mae_dk1_opt:.2f} €/MWh")
+            st.metric("MAE Optimisé", f"{mae_dk1_base:.2f} €/MWh")
+            st.metric("RMSE Optimisé", f"{r2_dk1_opt:.2f} €/MWh")
+            st.metric("R² Optimisé", f"{rmse_dk1_opt:.3f}")
         
         # Graphiques de prédictions
         st.markdown("#### Prédictions vs Réel")
